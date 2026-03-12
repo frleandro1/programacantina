@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Programa Cantina - Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background 0.3s ease;
+        }
+        body.admin-mode {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        body.vendedor-mode {
+            background: linear-gradient(135deg, #ff7a45 0%, #ff6a3d 100%);
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 32px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        /* MENU INICIAL */
+        #menuInicial {
+            display: block;
+        }
+        #menuInicial.hidden {
+            display: none;
+        }
+        .menu-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .menu-btn {
+            padding: 30px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+        }
+        .menu-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .menu-btn.admin:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .menu-btn.vendedor:hover {
+            border-color: #ff7a45;
+            background: #fff5f0;
+        }
+        .menu-btn-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .menu-btn-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .menu-btn-desc {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* FORMULÁRIO DE LOGIN */
+        #formContainer {
+            display: none;
+        }
+        #formContainer.show {
+            display: block;
+        }
+        .form-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .form-header button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            margin-right: 15px;
+            color: #667eea;
+        }
+        .form-header h2 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .btn-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-vendedor {
+            background: linear-gradient(135deg, #ff7a45 0%, #ff6a3d 100%);
+        }
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .message {
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+        .error {
+            background: #f8d7da;
+            color: #dc3545;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-test {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .info-box {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        @media (max-width: 600px) {
+            .menu-buttons {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- MENU INICIAL -->
+            <div id="menuInicial">
+                <h1>🍽️ Programa Cantina</h1>
+                <div class="subtitle">Escolha seu tipo de acesso</div>
+
+                <div class="menu-buttons">
+                    <button class="menu-btn admin" onclick="selecionarTipo('admin')">
+                        <div class="menu-btn-icon">👨‍💼</div>
+                        <div class="menu-btn-title">Administrador</div>
+                        <div class="menu-btn-desc">Acesso ao dashboard<br>administrativo</div>
+                    </button>
+                    <button class="menu-btn vendedor" onclick="selecionarTipo('vendedor')">
+                        <div class="menu-btn-icon">🛒</div>
+                        <div class="menu-btn-title">Vendedor</div>
+                        <div class="menu-btn-desc">Acesso ao módulo de<br>vendas</div>
+                    </button>
+                </div>
+
+                <div class="info-box" style="margin-top: 40px;">
+                    <strong>Sistema de Gerenciamento de Cantina</strong>
+                    Selecione seu perfil para continuar
+                </div>
+            </div>
+
+            <!-- FORMULÁRIO DE LOGIN -->
+            <div id="formContainer">
+                <div class="form-header">
+                    <button onclick="voltarMenu()" title="Voltar">←</button>
+                    <h2 id="formTitle">Login</h2>
+                </div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Usuário</label>
+                        <input type="text" id="username" placeholder="Digite seu usuário" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="btn" id="btnLogin">Entrar</button>
+                </form>
+
+                <div class="message error" id="errorMsg"></div>
+                <div class="message success" id="successMsg"></div>
+                <div class="status-test" id="statusTest"></div>
+                <div class="info-box" id="infoBox"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tipoAtual = null;
+
+        function selecionarTipo(tipo) {
+            tipoAtual = tipo;
+            document.body.className = tipo + '-mode';
+            document.getElementById('menuInicial').classList.add('hidden');
+            document.getElementById('formContainer').classList.add('show');
+
+            const titulo = tipo === 'admin' ? '👨‍💼 Administrador' : '🛒 Vendedor';
+            document.getElementById('formTitle').textContent = titulo;
+
+            const btnLogin = document.getElementById('btnLogin');
+            btnLogin.className = 'btn btn-' + tipo;
+
+            // Gerar info box baseado no tipo
+            const infoBox = document.getElementById('infoBox');
+            if (tipo === 'admin') {
+                infoBox.innerHTML = '<strong>Credencial de Teste (Admin):</strong>admin / admin123';
+                document.getElementById('username').focus();
+                document.getElementById('username').value = 'admin';
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            } else {
+                infoBox.innerHTML = '<strong>Credenciais de Teste (Vendedor):</strong>joao / vendedor123<br>maria / vendedor123<br>pedro / vendedor123';
+                document.getElementById('username').focus();
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+
+            testarConexao();
+        }
+
+        function voltarMenu() {
+            tipoAtual = null;
+            document.body.className = '';
+            document.getElementById('menuInicial').classList.remove('hidden');
+            document.getElementById('formContainer').classList.remove('show');
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('successMsg').style.display = 'none';
+            document.getElementById('statusTest').innerHTML = '';
+            document.getElementById('loginForm').reset();
+        }
+
+        async function testarConexao() {
+            const statusTest = document.getElementById('statusTest');
+            statusTest.innerHTML = '<span class="spinner"></span>Testando conexão...';
+
+            const endpoints = [
+                'api/diagnostico.php?t=' + Date.now(),
+                '/Cantina/api/diagnostico.php?t=' + Date.now(),
+                '/api/diagnostico.php?t=' + Date.now()
+            ];
+
+            try {
+                let resposta = null;
+
+                for (const endpoint of endpoints) {
+                    const res = await fetch(endpoint, {
+                        method: 'GET',
+                        cache: 'no-store'
+                    });
+
+                    if (res.ok) {
+                        resposta = res;
+                        break;
+                    }
+
+                    if (res.status !== 404 && res.status !== 405) {
+                        resposta = res;
+                        break;
+                    }
+                }
+
+                if (resposta && resposta.ok) {
+                    statusTest.innerHTML = '✅ Servidor respondendo normalmente';
+                    statusTest.style.color = '#28a745';
+                } else if (resposta) {
+                    statusTest.innerHTML = '⚠️ Servidor indisponível (HTTP ' + resposta.status + ')';
+                    statusTest.style.color = '#ff7a45';
+                } else {
+                    statusTest.innerHTML = '⚠️ API não encontrada. Acesse via http://localhost/Cantina/login-menu.html';
+                    statusTest.style.color = '#ff7a45';
+                }
+            } catch (err) {
+                statusTest.innerHTML = '❌ Erro de conexão: ' + err.message;
+                statusTest.style.color = '#dc3545';
+            }
+        }
+
+        async function requisitarLogin(username, password) {
+            const endpoints = [
+                'api/auth.php?action=login',
+                '/Cantina/api/auth.php?action=login',
+                '/api/auth.php?action=login'
+            ];
+
+            let lastResponse = null;
+            let lastError = null;
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: JSON.stringify({ username, password }),
+                        cache: 'no-store'
+                    });
+
+                    // Se um endpoint retorna 404/405, tentamos o próximo caminho da API.
+                    if ((response.status === 404 || response.status === 405) && endpoint !== endpoints[endpoints.length - 1]) {
+                        lastResponse = response;
+                        continue;
+                    }
+
+                    return response;
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            if (lastResponse) {
+                return lastResponse;
+            }
+
+            throw lastError || new Error('Falha ao conectar com a API de login');
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            const btnLogin = document.getElementById('btnLogin');
+
+            if (!username || !password) {
+                errorMsg.textContent = '❌ Preencha todos os campos';
+                errorMsg.style.display = 'block';
+                successMsg.style.display = 'none';
+                return;
+            }
+
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Conectando...';
+
+            try {
+                const response = await requisitarLogin(username, password);
+
+                const responseText = await response.text();
+                let data = null;
+
+                if (response.status === 405) {
+                    throw new Error('Servidor não aceita POST para a API (HTTP 405). Rode o projeto em servidor PHP (ex.: php -S localhost:8000 dentro da pasta Cantina).');
+                }
+
+                if (responseText.trim() !== '') {
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (parseError) {
+                        throw new Error('Resposta inválida do servidor (não é JSON). HTTP ' + response.status);
+                    }
+                }
+
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Resposta vazia do servidor. HTTP ' + response.status);
+                }
+
+                if (!response.ok && !data.sucesso) {
+                    throw new Error(data.mensagem || ('Falha na requisição. HTTP ' + response.status));
+                }
+
+                if (data.sucesso) {
+                    successMsg.textContent = '✅ Login realizado com sucesso! Redirecionando...';
+                    successMsg.style.display = 'block';
+
+                    localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                    localStorage.setItem('token', data.token || 'temp-token-' + Date.now());
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('userType', data.usuario?.tipo || tipoAtual);
+                    if (data.sessao_caixa_id) {
+                        localStorage.setItem('sessaoCaixaId', String(data.sessao_caixa_id));
+                        localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
+                    }
+
+                    setTimeout(() => {
+                        if (tipoAtual === 'admin') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'vendas.html';
+                        }
+                    }, 1500);
+                } else {
+                    errorMsg.textContent = '❌ ' + (data.mensagem || 'Erro ao fazer login');
+                    errorMsg.style.display = 'block';
+                    btnLogin.disabled = false;
+                    btnLogin.textContent = 'Entrar';
+                }
+            } catch (err) {
+                console.error('Erro:', err);
+                errorMsg.textContent = '❌ Erro de conexão: ' + err.message;
+                errorMsg.style.display = 'block';
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Entrar';
+            }
+        });
+    </script>
+</body>
+</html>

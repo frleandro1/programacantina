@@ -1,0 +1,280 @@
+🎫 GUIA RÁPIDO - MUDAR DADOS DO CUPOM
+
+===================================================================
+3 FORMAS DE CUSTOMIZAR O CUPOM
+===================================================================
+
+1️⃣ INTERFACE VISUAL (MAIS FÁCIL) ⭐
+─────────────────────────────────────
+
+Não precisa editar código!
+
+ACESSE: http://localhost/Cantina/customizador-cupom.html
+
+O quê você pode fazer:
+✓ Mudar nome da cantina
+✓ Adicionar vendedor/operador
+✓ Adicionar número do caixa
+✓ Mudar "Venda Nº" para outro rótulo
+✓ Customizar mensagens finais
+✓ Mudar separadores
+✓ Ver pré-visualização em tempo real
+✓ Aplicar templates prontos
+
+Como usar:
+1. Abra a página no navegador
+2. Preencha os campos que deseja
+3. Veja a pré-visualização ao lado
+4. Está bom? Continue para salvar (próximo passo)
+
+
+2️⃣ SALVAR CUSTOMIZAÇÕES NO BANCO (APLICAR PARA TODOS)
+───────────────────────────────────────────────────
+
+AINDA NA PÁGINA customizador-cupom.html:
+
+1. Configure tudo como deseja
+2. Clique em "EXPORTAR CONFIGURAÇÃO"
+3. Um arquivo JSON será baixado
+4. Envie o arquivo para o administrador
+5. O administrador executa: 
+   api/cupom-config.php?action=salvar
+   (com os dados do JSON no POST)
+
+RESULTADO: Todos os cupons gerados usarão a nova configuração!
+
+
+3️⃣ EDITAR CÓDIGO DIRETAMENTE (MAIS DIFÍCIL)
+──────────────────────────────────────────
+
+Para usuários avançados que sabem JavaScript/PHP:
+
+ARQUIVO: js/vendas.js
+FUNÇÃO: mostrarCupom()
+LINHAS: ~185-220
+
+EDITAR ASSIM:
+
+┌─ Linha 196: Nome da cantina
+│  cupom += '         PROGRAMA CANTINA\n';
+│  ↓
+│  cupom += '         MEUS DADOS AQUI\n';
+│
+├─ Linha 198: Rótulo do número
+│  cupom += `Venda Nº: ${idVenda}\n`;
+│  ↓
+│  cupom += `Cupom Nº: ${idVenda}\n`;
+│
+├─ Linha 201: PRODUTOS
+│  cupom += 'PRODUTOS\n';
+│  ↓
+│  cupom += 'ITENS VENDIDOS\n';
+│
+└─ Linha 213: Mensagem final
+   cupom += '    Obrigado pela preferência!\n';
+   ↓
+   cupom += '    Agradeço pela compra!\n';
+
+Depois: Salve (Ctrl+S) → Recarregue vendas.html → Teste!
+
+
+===================================================================
+EXEMPLOS COMUNS
+===================================================================
+
+MUDAR APENAS O NOME:
+  
+  No customizador: "Nome da Cantina" = "CANTINA DO JOÃO"
+  Cupom ficará:
+    ========================================
+       CANTINA DO JOÃO
+    ========================================
+
+
+ADICIONAR EMOJIS:
+  
+  No customizador: "Nome da Cantina" = "🍕 CANTINA DO JOÃO 🍕"
+  Cupom ficará:
+    ========================================
+     🍕 CANTINA DO JOÃO 🍕
+    ========================================
+
+
+MUDAR MENSAGEM FINAL:
+  
+  No customizador:
+    "Mensagem Final" = "Obrigado pela confiança!"
+    "Mensagem 2" = "Volte sempre!"
+    "Mensagem 3" = "Instagram: @minhacontina"
+  
+  Cupom ficará:
+    ========================================
+    Obrigado pela confiança!
+    Volte sempre!
+    Instagram: @minhacontina
+    ========================================
+
+
+ADICIONAR CONTATO:
+  
+  No customizador:
+    "Mensagem 2" = "Tel: (11) 98765-4321"
+    "Mensagem 3" = "contato@cantina.com"
+  
+  Cupom ficará:
+    ========================================
+    Obrigado pela preferência!
+    Tel: (11) 98765-4321
+    contato@cantina.com
+    ========================================
+
+
+===================================================================
+O QUE MUDA EM CADA CAMPO
+===================================================================
+
+CAMPO                    | O QUE APARECE               | ONDE
+────────────────────────────────────────────────────────────────
+Nome da Cantina          | "PROGRAMA CANTINA"          | Topo
+Operador/Vendedor        | "João Silva"                | Após data
+Caixa/Terminal           | "Caixa 01"                  | Após operador
+Rótulo do Cupom          | "Venda Nº: 1"               | Primeira linha
+Título dos Produtos      | "PRODUTOS"                  | Antes lista
+Rótulo do Total          | "TOTAL: R$ 15.00"           | Após lista
+Mensagem Final 1         | "Obrigado..."               | Antes separador
+Mensagem Final 2         | "Volte sempre!"             | Linha 2
+Mensagem Final 3         | "Tel: XX"                   | Linha 3
+Separador Principal      | "========"                  | Tópicos principais
+Separador de Seção       | "--------"                  | Entre seções
+
+
+===================================================================
+TEMPLATES PRONTOS
+===================================================================
+
+NO CUSTOMIZADOR, você pode aplicar templates:
+
+1. SIMPLES - Cupom minimalista (ideal para impressoras antigas)
+2. COMPLETO - Cupom com mais dados (vendedor, operador, etc)
+3. MODERNO - Design com emojis/caracteres especiais
+4. MINIMALISTA - O mais compacto possível
+
+Como usar:
+1. Abra customizador-cupom.html
+2. Clique no template desejado
+3. Veja a pré-visualização mudar
+4. Faça ajustes se necessário
+5. Está bom? Exporte a configuração
+
+
+===================================================================
+VALIDAÇÃO DE MUDANÇAS
+===================================================================
+
+PARA CONFIRMAR QUE TUDO FUNCIONOU:
+
+1. Customize o cupom em: customizador-cupom.html
+2. Abra: vendas.html
+3. Faça uma venda de teste
+4. No cupom exibido, procure:
+   ✓ Seu nome correto?
+   ✓ Sua mensagem apareceu?
+   ✓ Separadores corretos?
+5. SIM? Pronto! Está funcionando!
+6. NÃO? Verifique:
+   - Página está recarregada (F5)?
+   - Arquivo js/vendas.js foi salvo?
+   - Cache do navegador (Ctrl+Shift+Delete)?
+
+
+===================================================================
+CARACTERÍSTICAS ESPECIAIS
+===================================================================
+
+EMOJIS: Funciona perfeitamente!
+  🍕 🍔 🥤 📱 ✓ ★ ◆ ★
+
+MÚLTIPLAS LINHAS: Faça quebras com \n em código
+  (No customizador não precisa, ele faz automático)
+
+CARACTERES ESPECIAIS:
+  ◆ ◆ ◆ = ◆ ◆ ◆ ◆ ◆ ◆
+  ★ ★ ★ = ★ ★ ★ ★ ★ ★
+  ━━━━━ = ━━━━━━━━━━━━
+
+LARGURA: Mantenha ~40 caracteres (padrão impressora térmica)
+
+
+===================================================================
+TROUBLESHOOTING
+===================================================================
+
+PROBLEMA: Customizações não aparecem
+SOLUÇÃO:
+  1. Recarregue: Ctrl+F5 (força recarregar cache)
+  2. Verifique se vendas.js foi salvo
+  3. Feche completamente o navegador
+  4. Abra novamente
+
+PROBLEMA: Caracteres estranhos aparecem
+SOLUÇÃO:
+  1. Verifique se é um caractere especial/emoji
+  2. Copie de um site confiável
+
+PROBLEMA: Cupom aparece truncado na impressora
+SOLUÇÃO:
+  1. Reduza o tamanho do separador
+  2. Diminua a fonte (editar CSS em vendas.html)
+  3. Remova mensagens desnecessárias
+
+PROBLEMA: Não sei editar arquivo js/vendas.js
+SOLUÇÃO:
+  1. Use o customizador visual (customizador-cupom.html)
+  2. Solicite ajuda ao seu T.I
+  3. Consulte a documentação completa
+
+
+===================================================================
+BACKUP E SEGURANÇA
+===================================================================
+
+ANTES DE FAZER MUDANÇAS:
+
+1. Abra: c:\xampp\htdocs\Cantina\js\
+2. Copie: vendas.js → vendas.js.bak
+3. Se algo quebrar, restaure do .bak
+
+DICA: Faça backup toda vez que editar código!
+
+
+===================================================================
+PRÓXIMAS MELHORIAS (FUTURO)
+===================================================================
+
+□ Admin painel integrado para customizar cupom
+□ Histórico de customizações
+□ Pré-visualização em tempo real na vendas.html
+□ Múltiplos templates por contexto (eventos, promoções)
+□ QR Code nos cupons
+
+
+===================================================================
+CONCLUSÃO
+===================================================================
+
+FORMA RECOMENDADA:
+  1. Use customizador-cupom.html (mais fácil, visual)
+  2. Configure como deseja
+  3. Veja pré-visualização
+  4. Teste em vendas.html
+  5. Se OK, continua assim!
+
+Se precisar de ajuda:
+  - Documentação completa: CUSTOMIZAR-CUPOM.txt
+  - Código comentado: js/vendas.js (linhas 185-220)
+  - Testes: teste-cupom.html
+
+
+================================================================
+✅ PRONTO! Seu cupom está pronto para customizar!
+================================================================

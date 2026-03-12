@@ -1,0 +1,344 @@
+🎫 GUIA - COMO CUSTOMIZAR O CUPOM DE VENDA
+
+===================================================================
+LOCALIZAÇÃO DO CÓDIGO
+===================================================================
+
+Arquivo: js/vendas.js
+Função: mostrarCupom(idVenda, itens)
+Linhas: ~185-220
+
+
+===================================================================
+ESTRUTURA DO CUPOM
+===================================================================
+
+O cupom é montado em js/vendas.js assim:
+
+┌─ LINHA 195  Título do cupom
+│            '========================================\n'
+│
+├─ LINHA 196  Nome da cantina/empresa
+│            '         PROGRAMA CANTINA\n'
+│
+├─ LINHA 197  Separador
+│            '========================================\n'
+│
+├─ LINHA 198  Número de venda
+│            'Venda Nº: ${idVenda}\n'
+│
+├─ LINHA 199  Data e hora
+│            'Data: ${data}  Hora: ${hora}\n'
+│
+├─ LINHA 200  Separador
+│            '========================================\n\n'
+│
+├─ LINHA 201  Título PRODUTOS
+│            'PRODUTOS\n'
+│
+├─ LINHA 202  Separador de produtos
+│            '----------------------------------------\n'
+│
+├─ LINHA 206-207  LOOP dos itens
+│            (nome, quantidade, preço, subtotal)
+│
+├─ LINHA 210  Separador
+│            '========================================\n'
+│
+├─ LINHA 211  Valor total
+│            'TOTAL: R$ ${total.toFixed(2)}\n'
+│
+├─ LINHA 212  Separador
+│            '========================================\n\n'
+│
+├─ LINHA 213  Mensagem final
+│            '    Obrigado pela preferência!\n'
+│
+└─ LINHA 214  Separador final
+             '========================================\n'
+
+
+===================================================================
+EXEMPLOS DE CUSTOMIZAÇÃO
+===================================================================
+
+1. MUDAR O NOME DA CANTINA
+─────────────────────────────
+
+ANTES:
+  cupom += '         PROGRAMA CANTINA\n';
+
+DEPOIS (exemplo - Nome próprio):
+  cupom += '    CANTINA DO JOÃO - PADARIA\n';
+
+DEPOIS (exemplo - Com emojis):
+  cupom += '      🍕 CANTINA DELÍCIA 🍕\n';
+
+
+2. MUDAR MENSAGEM FINAL
+─────────────────────────────
+
+ANTES:
+  cupom += '    Obrigado pela preferência!\n';
+
+DEPOIS (opção 1 - Promoção):
+  cupom += '  Volte sempre! 10% desconto próxima compra\n';
+
+DEPOIS (opção 2 - Telefone):
+  cupom += '  Dúvidas? Ligue: (11) 9999-9999\n';
+
+DEPOIS (opção 3 - Website):
+  cupom += '  Siga-nos: @cantinadelicia\n';
+
+DEPOIS (opção 4 - Múltiplas linhas):
+  cupom += '  Muito obrigado!\n';
+  cupom += '  Indicamos para seus amigos!\n';
+  cupom += '  Instagram: @cantinadelicia\n';
+
+
+3. ADICIONAR INFORMAÇÕES NO CUPOM
+─────────────────────────────────────
+
+Após a data (linha 199), adicione:
+
+OPÇÃO A - Número de caixa/vendedor:
+  cupom += `Vendedor: João Silva\n`;
+
+OPÇÃO B - Número do caixa:
+  cupom += `Caixa: 01\n`;
+
+OPÇÃO C - Código da venda:
+  cupom += `Código: VND-${idVenda}\n`;
+
+OPÇÃO D - Cupom fiscal:
+  cupom += `NFC-e: 123456789\n`;
+
+
+4. MUDAR SEPARADORES
+──────────────────────
+
+PADRÃO (atual):
+  '========================================\n'
+
+OPÇÃO 1 (tracejado):
+  '----------------------------------------\n'
+
+OPÇÃO 2 (asteriscos):
+  '****************************************\n'
+
+OPÇÃO 3 (simples):
+  '=====================================\n'
+
+OPÇÃO 4 (caracteres especiais):
+  '◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆\n'
+
+
+5. EXEMPLO COMPLETO - CUPOM PERSONALIZADO
+────────────────────────────────────────────
+
+Copie este código e substitua a função mostrarCupom():
+
+function mostrarCupom(idVenda, itens) {
+  const modal = document.getElementById('cupomModal');
+  const preview = document.getElementById('cupomPreview');
+  
+  const now = new Date();
+  const data = now.toLocaleDateString('pt-BR');
+  const hora = now.toLocaleTimeString('pt-BR');
+  
+  const total = itens.reduce((sum, c) => sum + c.preco * c.qtd, 0);
+  
+  // CUSTOMIZAÇÃO: Começar aqui
+  let cupom = '';
+  cupom += '========================================\n';
+  cupom += '    🎭 CANTINA DO BAIRRO 🎭\n';  // ← MUDE AQUI
+  cupom += '========================================\n';
+  cupom += `Cupom Nº: ${idVenda}\n`;
+  cupom += `Data: ${data} às ${hora}\n`;
+  cupom += `Operador: João Silva\n`;  // ← NOVO
+  cupom += '========================================\n\n';
+  cupom += 'ITENS VENDIDOS\n';  // ← MUDE AQUI
+  cupom += '----------------------------------------\n';
+  
+  itens.forEach(c => {
+    const subtotal = c.preco * c.qtd;
+    cupom += `${c.nome}\n`;
+    cupom += `   ${c.qtd} unidades x R$ ${c.preco.toFixed(2)} = R$ ${subtotal.toFixed(2)}\n\n`;  // ← MUDE PARA "unidades"
+  });
+  
+  cupom += '========================================\n';
+  cupom += `TOTAL A PAGAR: R$ ${total.toFixed(2)}\n`;  // ← MUDE AQUI
+  cupom += '========================================\n\n';
+  cupom += 'Muito obrigado pela sua compra!\n';  // ← MUDE AQUI
+  cupom += 'Volte sempre!\n';  // ← NOVO
+  cupom += '========================================\n';
+  // FIM DA CUSTOMIZAÇÃO
+  
+  preview.textContent = cupom;
+  modal.classList.add('show');
+}
+
+
+===================================================================
+VARIÁVEIS DISPONÍVEIS
+===================================================================
+
+Na função mostrarCupom(), você tem acesso a:
+
+- idVenda           : Número da venda (ex: 1, 2, 3...)
+- itens             : Array com produtos vendidos
+- now               : Data e hora atual
+- data              : Data formatada (ex: "05/03/2026")
+- hora              : Hora formatada (ex: "14:30:45")
+- total             : Valor total da venda
+
+Para cada item do cupom:
+- c.nome            : Nome do produto
+- c.qtd             : Quantidade vendida
+- c.preco           : Preço unitário
+- subtotal          : Quantidade × Preço
+
+
+===================================================================
+COMO APLICAR AS MUDANÇAS
+===================================================================
+
+1. Abra o arquivo: js/vendas.js
+
+2. Encontre a função mostrarCupom() (linha ~185)
+
+3. Faça as alterações que deseja nas linhas do cupom
+
+4. Salve o arquivo (Ctrl+S)
+
+5. Recarregue a página vendas.html no navegador (F5 ou Ctrl+F5)
+
+6. Faça uma venda de teste e veja o novo cupom!
+
+
+===================================================================
+MUDANÇAS MAIS COMUNS
+===================================================================
+
+1. APENAS MUDAR O NOME:
+   Encontre a linha:
+     cupom += '         PROGRAMA CANTINA\n';
+   
+   Mude para seu nome:
+     cupom += '       MINHA CANTINA AQUI\n';
+
+2. ADICIONAR LOGO/EMOJIS:
+   cupom += '🍔 CANTINA DO JOÃO 🍔\n';
+   cupom += '━━━━━━━━━━━━━━━━━━━━━━━━━━ \n';
+
+3. ADICIONAR CONTATO:
+   cupom += `Contato: (11) 98765-4321\n`;
+   cupom += `Instagram: @minhacontina\n`;
+
+4. MUDAR MENSAGEM FINAL:
+   Encontre:
+     cupom += '    Obrigado pela preferência!\n';
+   
+   Mude para:
+     cupom += '  Que Deus abençoe sua compra!\n';
+
+5. ADICIONAR HORÁRIO DE FUNCIONAMENTO:
+   cupom += 'Seg-Sex: 7h às 20h\n';
+   cupom += 'Sáb-Dom: 8h às 18h\n';
+
+
+===================================================================
+DICAS IMPORTANTES
+===================================================================
+
+✓ Use \n para quebra de linha
+✓ Use ` ${variavel} ` para inserir valores dinâmicos
+✓ Mantenha o cupom com ~40 caracteres de largura (padrão de impressora)
+✓ Não deixe linhas em branco desnecessárias (desperdiça papel)
+✓ Teste sempre antes de usar em produção
+✓ Crie backup do arquivo antes de editar
+
+
+===================================================================
+EXEMPLO DE CUPOM ANTES E DEPOIS
+===================================================================
+
+ANTES:
+  ========================================
+           PROGRAMA CANTINA
+  ========================================
+  Venda Nº: 1
+  Data: 05/03/2026  Hora: 14:30:45
+  ========================================
+  
+  PRODUTOS
+  ----------------------------------------
+  Coxinha
+    1 x R$ 5.50 = R$ 5.50
+  
+  Suco
+    2 x R$ 4.50 = R$ 9.00
+  
+  ========================================
+  TOTAL: R$ 14.50
+  ========================================
+  
+      Obrigado pela preferência!
+  ========================================
+
+
+DEPOIS (customizado):
+  ========================================
+    🍕 CANTINA DO JOÃO 🍕
+  ========================================
+  Cupom Nº: 1
+  Data: 05/03/2026 às 14:30:45
+  Operador: Maria
+  ========================================
+  
+  ITENS VENDIDOS
+  ----------------------------------------
+  Coxinha
+     1 unidades x R$ 5.50 = R$ 5.50
+  
+  Suco
+     2 unidades x R$ 4.50 = R$ 9.00
+  
+  ========================================
+  TOTAL A PAGAR: R$ 14.50
+  ========================================
+  
+  Muito obrigado pela sua compra!
+  Volte sempre!
+  
+  Tel: (11) 98765-4321
+  @cantinajp
+  ========================================
+
+
+===================================================================
+ARQUIVO DE BACKUP
+===================================================================
+
+Antes de editar, faça backup:
+
+1. Acesse: c:\xampp\htdocs\Cantina\js\vendas.js
+2. Copie para: vendas.js.bak
+3. Edite o original com confiança!
+4. Se algo quebrar, restaure do .bak
+
+
+===================================================================
+SUPORTE E EXEMPLOS
+===================================================================
+
+Precisa de mais ajuda?
+
+1. Arquivo de testes: teste-cupom-customizado.html
+2. Documentação completa: README-CUPOM.txt
+3. Exemplos prontos em: exemplos-cupom/
+
+Qualquer dúvida, consulte o gerenciador do sistema.
+
+
+===================================================================

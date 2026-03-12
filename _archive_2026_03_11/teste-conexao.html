@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste de Conexão</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>🧪 Teste de Conexão</h1>
+    <div id="resultado"></div>
+    
+    <script>
+        // Forçar sem cache
+        const timestamp = Date.now();
+        
+        async function testar() {
+            const resultado = document.getElementById('resultado');
+            
+            try {
+                const res = await fetch(`api/diagnostico.php?t=${timestamp}`, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                const data = await res.json();
+                
+                if (data.login.status === 'funcionando') {
+                    resultado.innerHTML = `<p style="color: green; font-size: 20px;">✅ CONEXÃO FUNCIONANDO!</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultado.innerHTML = `<p style="color: red;">❌ Erro: ${data.login.error || 'Desconhecido'}</p>`;
+                }
+            } catch (err) {
+                resultado.innerHTML = `<p style="color: red;">❌ Erro: ${err.message}</p>`;
+            }
+        }
+        
+        testar();
+    </script>
+</body>
+</html>

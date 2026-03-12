@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Login Vendedor - Programa Cantina</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-card h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 12px;
+            background: #f8d7da;
+            border-radius: 6px;
+            display: none;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 12px;
+            background: #d4edda;
+            border-radius: 6px;
+            display: none;
+            border: 1px solid #c3e6cb;
+        }
+        .info-box {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+        .status-test {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1>🛒 Vendas</h1>
+        <div class="subtitle">Acesso para Vendedores</div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Usuário</label>
+                <input type="text" id="username" name="username" placeholder="Ex: joao, maria, pedro" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn" id="btnLogin">Entrar</button>
+            <div class="error" id="errorMsg"></div>
+            <div class="success" id="successMsg"></div>
+            <div class="status-test" id="statusTest"></div>
+        </form>
+
+        <div class="info-box">
+            <strong>Credenciais de Teste:</strong>
+            joao / vendedor123<br>
+            maria / vendedor123<br>
+            pedro / vendedor123
+        </div>
+    </div>
+
+    <script>
+        const statusTest = document.getElementById('statusTest');
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+        const btnLogin = document.getElementById('btnLogin');
+
+        // Testar conexão ao carregar
+        async function testarConexao() {
+            statusTest.innerHTML = '<span class="spinner"></span>Testando conexão...';
+            try {
+                const res = await fetch('api/diagnostico.php?t=' + Date.now(), {
+                    method: 'GET',
+                    cache: 'no-store'
+                });
+                if (res.ok) {
+                    statusTest.innerHTML = '✅ Servidor respondendo normalmente';
+                    statusTest.style.color = '#28a745';
+                } else {
+                    statusTest.innerHTML = '⚠️ Servidor indisponível (HTTP ' + res.status + ')';
+                    statusTest.style.color = '#ff7a45';
+                }
+            } catch (err) {
+                statusTest.innerHTML = '❌ Erro de conexão: ' + err.message;
+                statusTest.style.color = '#dc3545';
+            }
+        }
+
+        // Interceptar envio do formulário
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                errorMsg.textContent = '❌ Preencha todos os campos';
+                errorMsg.style.display = 'block';
+                successMsg.style.display = 'none';
+                return;
+            }
+
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Conectando...';
+
+            try {
+                console.log('Enviando login para:', username);
+
+                const response = await fetch('api/auth.php?action=login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    cache: 'no-store'
+                });
+
+                console.log('Resposta recebida:', response.status);
+
+                const data = await response.json();
+                console.log('Dados:', data);
+
+                if (data.sucesso) {
+                    successMsg.textContent = '✅ Login realizado com sucesso! Redirecionando...';
+                    successMsg.style.display = 'block';
+
+                    // Salvar dados de sessão
+                    localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('userType', data.usuario?.tipo || 'atendente');
+
+                    // Redirecionar após 1.5s
+                    setTimeout(() => {
+                        window.location.href = 'vendas.html';
+                    }, 1500);
+                } else {
+                    errorMsg.textContent = '❌ ' + (data.mensagem || 'Erro ao fazer login');
+                    errorMsg.style.display = 'block';
+                    btnLogin.disabled = false;
+                    btnLogin.textContent = 'Entrar';
+                }
+            } catch (err) {
+                console.error('Erro completo:', err);
+                errorMsg.textContent = '❌ Erro de conexão: ' + err.message;
+                errorMsg.style.display = 'block';
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Entrar';
+            }
+        });
+
+        // Testar ao carregar
+        window.addEventListener('load', testarConexao);
+    </script>
+</body>
+</html>

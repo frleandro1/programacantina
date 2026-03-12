@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teste - Numeração de Vendas Diária</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #ff7a45;
+      padding-bottom: 10px;
+    }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      border-left: 4px solid #2c3e50;
+      background: #f9f9f9;
+      border-radius: 5px;
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    button {
+      background: #ff7a45;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #ff6a35;
+    }
+    .resultado {
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 5px;
+      border-left: 4px solid #ccc;
+    }
+    .resultado.sucesso {
+      background: #d4edda;
+      border-left-color: #28a745;
+      color: #155724;
+    }
+    .resultado.erro {
+      background: #f8d7da;
+      border-left-color: #dc3545;
+      color: #721c24;
+    }
+    .resultado.info {
+      background: #d1ecf1;
+      border-left-color: #0c5460;
+      color: #0c5460;
+    }
+    pre {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background: #2c3e50;
+      color: white;
+    }
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🧪 Testes - Numeração de Vendas Diária</h1>
+  
+  <div class="info-box">
+    <strong>ℹ️ Sistema de Numeração Diária:</strong><br>
+    As vendas agora são numeradas de 1 a N a cada dia. Ao final do dia, o contador reseta para 1 no dia seguinte.
+    O cupom exibe o número sequencial do dia em vez do ID do banco.
+  </div>
+
+  <div class="test-section">
+    <h2>1. Verificar Estado Atual</h2>
+    <button onclick="verificarEstado()">📊 Verificar Números de Hoje</button>
+    <div id="resultado-verificar"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Simular Venda</h2>
+    <p>Simula uma venda de teste para verificar o número de venda</p>
+    <button onclick="simularVenda()">🛒 Simular Venda</button>
+    <div id="resultado-venda"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. Histórico de Vendas Hoje</h2>
+    <button onclick="listarVendasHoje()">📋 Listar Vendas de Hoje</button>
+    <div id="resultado-historico"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>4. Informações da API</h2>
+    <button onclick="testarAPI()">🔌 Testar Endpoints</button>
+    <div id="resultado-api"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>5. Limpar Testes</h2>
+    <p>⚠️ Use com cuidado! Isso remove registros de teste.</p>
+    <button onclick="if(confirm('Tem certeza?')) limparTestes(); else alert('Cancelado');">🗑️ Remover Dados de Teste</button>
+    <div id="resultado-limpar"></div>
+  </div>
+</div>
+
+<script>
+async function verificarEstado() {
+  const div = document.getElementById('resultado-verificar');
+  div.innerHTML = '<p>⏳ Carregando...</p>';
+  
+  try {
+    const response = await fetch('config-numeracao-vendas.php?action=testar');
+    const data = await response.json();
+    
+    if (data.sucesso) {
+      div.innerHTML = `
+        <div class="resultado sucesso">
+          <strong>✅ Sistema Operacional</strong><p>
+          Ultima venda do dia: <strong>${data.dados.ultima_venda_do_dia}</strong><br>
+          Próximo número: <strong>${data.dados.proximo_numero}</strong><br>
+          Data: <strong>${data.dados.hoje}</strong>
+        </div>
+      `;
+    } else {
+      div.innerHTML = `<div class="resultado erro"><strong>❌ Erro:</strong> ${data.mensagem}</div>`;
+    }
+  } catch (err) {
+    div.innerHTML = `<div class="resultado erro"><strong>❌ Erro de conexão:</strong> ${err.message}</div>`;
+  }
+}
+
+async function simularVenda() {
+  const div = document.getElementById('resultado-venda');
+  div.innerHTML = '<p>⏳ Processando venda...</p>';
+  
+  try {
+    // Simular uma venda bem simples
+    const response = await fetch('api/vendas.php?action=criar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_id: 1,
+        produto_id: 1,
+        quantidade: 1
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.sucesso) {
+      div.innerHTML = `
+        <div class="resultado sucesso">
+          <strong>✅ Venda Registrada com Sucesso!</strong><p>
+          <strong>ID da Venda:</strong> ${data.id}<br>
+          <strong>Número do Cupom:</strong> ${data.numero_venda}<br>
+          <strong>Mensagem:</strong> ${data.mensagem}
+        </div>
+        <pre>${JSON.stringify(data, null, 2)}</pre>
+      `;
+    } else {
+      div.innerHTML = `<div class="resultado erro"><strong>❌ Erro:</strong> ${data.mensagem}</div>`;
+    }
+  } catch (err) {
+    div.innerHTML = `<div class="resultado erro"><strong>❌ Erro de conexão:</strong> ${err.message}</div>`;
+  }
+}
+
+async function listarVendasHoje() {
+  const div = document.getElementById('resultado-historico');
+  div.innerHTML = '<p>⏳ Carregando histórico...</p>';
+  
+  try {
+    const response = await fetch('api/vendas.php?action=listar');
+    const data = await response.json();
+    
+    if (data.sucesso) {
+      const hoje = new Date().toISOString().split('T')[0];
+      const vendasHoje = data.dados.filter(v => v.data_venda.startsWith(hoje));
+      
+      if (vendasHoje.length === 0) {
+        div.innerHTML = '<div class="resultado info">Nenhuma venda registrada hoje</div>';
+        return;
+      }
+      
+      let html = `
+        <div class="resultado sucesso">
+          <strong>✅ Vendas de Hoje (${vendasHoje.length} venda(s))</strong>
+        </div>
+        <table>
+          <tr>
+            <th>ID</th>
+            <th>Cupom</th>
+            <th>Produto</th>
+            <th>Qtd</th>
+            <th>Valor</th>
+            <th>Hora</th>
+          </tr>
+      `;
+      
+      vendasHoje.forEach(v => {
+        const hora = v.data_venda.split(' ')[1] || '??:??:??';
+        html += `
+          <tr>
+            <td>${v.id}</td>
+            <td><strong>#${v.numero_pedido}</strong></td>
+            <td>${v.produto_nome}</td>
+            <td>${v.quantidade}</td>
+            <td>R$ ${v.total.toFixed(2)}</td>
+            <td>${hora}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</table>';
+      div.innerHTML = html;
+    } else {
+      div.innerHTML = `<div class="resultado erro"><strong>❌ Erro:</strong> ${data.mensagem}</div>`;
+    }
+  } catch (err) {
+    div.innerHTML = `<div class="resultado erro"><strong>❌ Erro de conexão:</strong> ${err.message}</div>`;
+  }
+}
+
+async function testarAPI() {
+  const div = document.getElementById('resultado-api');
+  div.innerHTML = '<p>⏳ Testando endpoints...</p>';
+  
+  let html = '';
+  
+  // Teste 1: API disponível
+  try {
+    const res = await fetch('api/vendas.php?action=listar');
+    if (res.ok) {
+      html += '<div class="resultado sucesso">✅ Endpoint <strong>/api/vendas.php</strong> funcionando</div>';
+    }
+  } catch (err) {
+    html += `<div class="resultado erro">❌ Erro em vendas.php: ${err.message}</div>`;
+  }
+  
+  // Teste 2: Config disponível
+  try {
+    const res = await fetch('config-numeracao-vendas.php?action=testar');
+    if (res.ok) {
+      html += '<div class="resultado sucesso">✅ Endpoint <strong>/config-numeracao-vendas.php</strong> funcionando</div>';
+    }
+  } catch (err) {
+    html += `<div class="resultado erro">❌ Erro em config-numeracao-vendas.php: ${err.message}</div>`;
+  }
+  
+  // Teste 3: Número de venda disponível
+  try {
+    const res = await fetch('api/vendas.php?action=listar');
+    const data = await res.json();
+    if (data.dados && data.dados[0] && data.dados[0].numero_pedido) {
+      html += '<div class="resultado sucesso">✅ Campo <strong>numero_pedido</strong> presente nas respostas</div>';
+    } else {
+      html += '<div class="resultado info">⚠️ Nenhuma venda anterior para verificar numero_pedido</div>';
+    }
+  } catch (err) {
+    html += `<div class="resultado info">⚠️ Não foi possível verificar numero_pedido</div>`;
+  }
+  
+  div.innerHTML = html;
+}
+
+async function limparTestes() {
+  const div = document.getElementById('resultado-limpar');
+  div.innerHTML = '<p>⏳ Removendo dados de teste...</p>';
+  
+  // Aqui você poderia adicionar uma chamada para remover as últimas vendas de teste
+  // Por enquanto, apenas informamos
+  
+  div.innerHTML = `
+    <div class="resultado info">
+      <strong>ℹ️ Nota:</strong> Para remover dados de teste, use o painel de administração ou acesse o banco diretamente.<br>
+      As vendas criadas pelos testes ficam registradas no banco de dados.
+    </div>
+  `;
+}
+
+// Carregar testes automaticamente
+window.addEventListener('load', () => {
+  verificarEstado();
+});
+</script>
+</body>
+</html>

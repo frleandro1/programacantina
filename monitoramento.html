@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoramento de Baixa - Programa Cantina</title>
+<link rel="stylesheet" href="css/theme.css">
+<style>
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
+  background: #1a1a1a;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-stats {
+  display: flex;
+  gap: 30px;
+  font-size: 16px;
+}
+
+.header-stats div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header-stats span:first-child {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.header-stats span:last-child {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.main-content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.monitor-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  border-left: 5px solid var(--brand);
+  transition: all 0.3s ease;
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.monitor-card.novo {
+  border-left-color: #28a745;
+  box-shadow: 0 0 20px rgba(40, 167, 69, 0.3);
+}
+
+.monitor-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.produto-nome {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.produto-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.info-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--brand);
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.quantidade-removida {
+  color: #dc3545;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.horario {
+  font-size: 12px;
+  color: #999;
+  margin-top: 10px;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.badge-categoria {
+  display: inline-block;
+  background: #e9ecef;
+  color: #333;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100px 20px;
+  color: #999;
+}
+
+.empty-state-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 18px;
+  margin: 0;
+}
+
+.estoque-bar {
+  width: 100%;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.estoque-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 3px;
+}
+
+.warning {
+  border-left-color: #ffc107 !important;
+}
+
+.danger {
+  border-left-color: #dc3545 !important;
+}
+
+.footer {
+  background: #222;
+  color: #999;
+  padding: 15px 30px;
+  text-align: center;
+  font-size: 12px;
+  border-top: 1px solid #333;
+}
+
+@media (max-width: 768px) {
+  .monitor-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .header-stats {
+    width: 100%;
+    justify-content: space-around;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 Monitoramento de Baixa de Estoque</h1>
+  <div class="header-stats">
+    <div>
+      <span>Total de Baixas</span>
+      <span id="totalBaixas">0</span>
+    </div>
+    <div>
+      <span>Último atualizado</span>
+      <span id="ultimaAtualizacao">--:--</span>
+    </div>
+  </div>
+</div>
+
+<div class="main-content" id="mainContent">
+  <div class="monitor-grid" id="monitorGrid">
+    <div class="empty-state">
+      <div class="empty-state-icon">📭</div>
+      <p>Aguardando vendas...</p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  ⏱️ Atualizando em tempo real a cada 5 minutos | Feche a aba de Vendas e abra esta em outra tela
+</div>
+
+<script>
+let ultimasVendas = [];
+let ultimoCheck = 0;
+
+async function verificarBaixas() {
+  try {
+    const res = await fetch('api/vendas.php?action=listar');
+    const data = await res.json();
+    
+    if (!data.sucesso) {
+      console.error('Erro ao carregar vendas:', data.mensagem);
+      return;
+    }
+    
+    const vendas = data.dados || [];
+    
+    // Processar vendas para exibição
+    const vendasProcessadas = vendas.slice(0, 50).map(v => {
+      const dataVenda = new Date(v.data_venda || v.data_hora);
+      return {
+        id: v.id || v.numero_pedido,
+        nome: v.produto_nome || 'Produto desconhecido',
+        quantidade: v.quantidade || 0,
+        preco: v.preco_unitario || 0,
+        total: v.total || (v.quantidade * v.preco_unitario),
+        horario: dataVenda.toLocaleTimeString('pt-BR'),
+        data: dataVenda.toLocaleDateString('pt-BR'),
+        timestamp: dataVenda.getTime(),
+        novo: dataVenda.getTime() > ultimoCheck
+      };
+    });
+    
+    // Atualizar última verificação
+    ultimoCheck = Date.now();
+    
+    // Atualizar lista de vendas
+    ultimasVendas = vendasProcessadas;
+    renderizarMonitor();
+    atualizarHorario();
+  } catch (err) {
+    console.error('Erro ao verificar vendas:', err);
+  }
+}
+
+function renderizarMonitor() {
+  const grid = document.getElementById('monitorGrid');
+  
+  if (ultimasVendas.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1/-1;">
+        <div class="empty-state-icon">📭</div>
+        <p>Aguardando vendas...</p>
+      </div>
+    `;
+    return;
+  }
+  
+  grid.innerHTML = ultimasVendas.map((venda, idx) => {
+    const classe = venda.novo ? 'novo' : '';
+    
+    return `
+      <div class="monitor-card ${classe}">
+        <div class="produto-nome">${venda.nome}</div>
+        
+        <div class="produto-info">
+          <div>
+            <div class="info-label">Quantidade Vendida</div>
+            <div class="quantidade-removida">-${venda.quantidade}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="info-label">Valor Unitário</div>
+            <div style="font-size: 16px; color: #667eea; font-weight: bold;">R$ ${parseFloat(venda.preco).toFixed(2)}</div>
+          </div>
+        </div>
+        
+        <div class="produto-info">
+          <div>
+            <div class="info-label">Total da Venda</div>
+            <div style="font-size: 20px; color: #28a745; font-weight: bold;">R$ ${parseFloat(venda.total).toFixed(2)}</div>
+          </div>
+        </div>
+        
+        <div class="horario">📅 ${venda.data} ⏰ ${venda.horario}</div>
+      </div>
+    `;
+  }).join('');
+  
+  document.getElementById('totalBaixas').textContent = ultimasVendas.length;
+}
+
+function atualizarHorario() {
+  const agora = new Date();
+  document.getElementById('ultimaAtualizacao').textContent = agora.toLocaleTimeString('pt-BR');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  verificarBaixas();
+  renderizarMonitor();
+  
+  // Verificar a cada 5 minutos (300 segundos)
+  setInterval(verificarBaixas, 300000);
+  
+  // Atualizar horário a cada segundo
+  setInterval(atualizarHorario, 1000);
+});
+</script>
+
+</body>
+</html>
