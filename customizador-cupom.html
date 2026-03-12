@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Customizador de Cupom</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Courier New', monospace;
+      background: #f5f5f5;
+      padding: 20px;
+      margin: 0;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    .painel {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-top: 0;
+      border-bottom: 3px solid #ff7a45;
+      padding-bottom: 10px;
+    }
+    
+    h2 {
+      color: #555;
+      margin-top: 5px;
+      font-size: 16px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+      font-size: 13px;
+    }
+    
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      resize: vertical;
+    }
+    
+    textarea {
+      min-height: 60px;
+      font-size: 11px;
+    }
+    
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #ff7a45;
+      box-shadow: 0 0 5px rgba(255, 122, 69, 0.3);
+    }
+    
+    .cupom-preview {
+      background: #f0f0f0;
+      border: 2px dashed #999;
+      padding: 20px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #333;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+      min-height: 300px;
+      margin: 15px 0;
+    }
+    
+    button {
+      background: #ff7a45;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    button:hover {
+      background: #ff6a35;
+    }
+    
+    button.secondary {
+      background: #666;
+    }
+    
+    button.secondary:hover {
+      background: #555;
+    }
+    
+    .button-group {
+      margin: 20px 0;
+      display: flex;
+      gap: 10px;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196F3;
+      padding: 12px;
+      margin: 15px 0;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #1565c0;
+    }
+    
+    .template-btn {
+      background: #4CAF50;
+      padding: 8px 15px;
+      font-size: 11px;
+      margin-bottom: 8px;
+      width: 100%;
+      text-align: left;
+    }
+    
+    .template-btn:hover {
+      background: #45a049;
+    }
+    
+    .copy-code {
+      background: #2196F3;
+      padding: 8px 15px;
+      font-size: 11px;
+      margin-top: 10px;
+    }
+    
+    .copy-code:hover {
+      background: #1976D2;
+    }
+    
+    .section-title {
+      margin-top: 20px;
+      margin-bottom: 10px;
+      color: #ff7a45;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    hr {
+      margin: 20px 0;
+      border: none;
+      border-top: 1px solid #ddd;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- PAINEL DE CONTROLE -->
+  <div class="painel">
+    <h1>🎫 Customizador de Cupom</h1>
+    
+    <div class="info-box">
+      Customize aqui como seu cupom será exibido. As alterações aparecem em tempo real na pré-visualização ao lado.
+    </div>
+    
+    <div class="section-title">📋 INFORMAÇÕES BÁSICAS</div>
+    
+    <div class="form-group">
+      <label>Nome da Cantina/Empresa *</label>
+      <input type="text" id="nomeCantina" placeholder="Ex: PROGRAMA CANTINA" value="PROGRAMA CANTINA">
+    </div>
+    
+    <div class="form-group">
+      <label>Operador/Vendedor</label>
+      <input type="text" id="vendedor" placeholder="Ex: João Silva" value="">
+    </div>
+    
+    <div class="form-group">
+      <label>Caixa/Terminal</label>
+      <input type="text" id="caixa" placeholder="Ex: Caixa 01" value="">
+    </div>
+    
+    <div class="form-group">
+      <label>Rótulo do Cupom</label>
+      <input type="text" id="rotuloCupom" placeholder="Ex: Venda Nº" value="Venda Nº">
+    </div>
+    
+    <hr>
+    
+    <div class="section-title">🛍️ SEÇÃO DE PRODUTOS</div>
+    
+    <div class="form-group">
+      <label>Título dos Produtos</label>
+      <input type="text" id="tituloProdutos" placeholder="Ex: PRODUTOS" value="PRODUTOS">
+    </div>
+    
+    <div class="form-group">
+      <label>Formato de Quantidade</label>
+      <input type="text" id="formatoQtd" placeholder="Ex: {qtd} x R$ {preco}" value="{qtd} x R$ {preco}">
+    </div>
+    
+    <div class="form-group">
+      <label>Rótulo do Total</label>
+      <input type="text" id="rotuloTotal" placeholder="Ex: TOTAL" value="TOTAL">
+    </div>
+    
+    <hr>
+    
+    <div class="section-title">💬 MENSAGENS</div>
+    
+    <div class="form-group">
+      <label>Mensagem Final (próxima linha)</label>
+      <input type="text" id="msg1" placeholder="Ex: Obrigado pela preferência!" value="Obrigado pela preferência!">
+    </div>
+    
+    <div class="form-group">
+      <label>Mensagem 2</label>
+      <input type="text" id="msg2" placeholder="Ex: Volte sempre!" value="">
+    </div>
+    
+    <div class="form-group">
+      <label>Mensagem 3 (Contato/Redes)</label>
+      <input type="text" id="msg3" placeholder="Ex: Tel: (11) 9999-9999" value="">
+    </div>
+    
+    <hr>
+    
+    <div class="section-title">🎨 SEPARADORES</div>
+    
+    <div class="form-group">
+      <label>Separador Principal</label>
+      <input type="text" id="sepPrincipal" maxlength="40" placeholder="Ex: ========" value="========================================">
+    </div>
+    
+    <div class="form-group">
+      <label>Separador de Seção</label>
+      <input type="text" id="sepSecao" maxlength="40" placeholder="Ex: --------" value="----------------------------------------">
+    </div>
+    
+    <hr>
+    
+    <div class="button-group">
+      <button onclick="atualizarCupom()">🔄 ATUALIZAR CUPOM</button>
+      <button class="secondary" onclick="resetarPadrao()">↻ PADRÃO</button>
+    </div>
+    
+    <div class="section-title">📦 TEMPLATES PRONTOS</div>
+    
+    <button class="template-btn" onclick="aplicarTemplate('simples')">1️⃣ Template Simples</button>
+    <button class="template-btn" onclick="aplicarTemplate('completo')">2️⃣ Template Completo</button>
+    <button class="template-btn" onclick="aplicarTemplate('moderno')">3️⃣ Template Moderno</button>
+    <button class="template-btn" onclick="aplicarTemplate('minimal')">4️⃣ Template Minimalista</button>
+    
+    <div class="button-group" style="margin-top: 20px;">
+      <!-- <button class="copy-code" onclick="copiarCodigo()">📋 COPIAR CÓDIGO JS</button> -->
+      <button class="copy-code" onclick="exportarJSON()">💾 EXPORTAR CONFIGURAÇÃO</button>
+    </div>
+  </div>
+  
+  <!-- PRÉ-VISUALIZAÇÃO -->
+  <div class="painel">
+    <h1>👁️ Pré-visualização</h1>
+    
+    <div id="cupomPreview" class="cupom-preview">Customize no painel ao lado e a pré-visualização aparecerá aqui...</div>
+    
+    <button onclick="imprimirCupom()" style="width: 100%; margin-top: 10px;">🖨️ IMPRIMIR CUPOM</button>
+    
+    <div class="info-box" style="margin-top: 20px;">
+      <strong>Dica:</strong> A largura ideal para impressoras térmica é de ~40 caracteres. Tente manter seu cupom dentro desse limite.
+    </div>
+  </div>
+  
+</div>
+
+<script>
+// Dados padrão
+const padraoOriginal = {
+  nomeCantina: 'PROGRAMA CANTINA',
+  vendedor: '',
+  caixa: '',
+  rotuloCupom: 'Venda Nº',
+  tituloProdutos: 'PRODUTOS',
+  formatoQtd: '{qtd} x R$ {preco}',
+  rotuloTotal: 'TOTAL',
+  msg1: 'Obrigado pela preferência!',
+  msg2: '',
+  msg3: '',
+  sepPrincipal: '========================================',
+  sepSecao: '----------------------------------------'
+};
+
+// Templates prontos
+const templates = {
+  simples: {
+    nomeCantina: 'PROGRAMA CANTINA',
+    vendedor: '',
+    caixa: '',
+    rotuloCupom: 'Venda Nº',
+    tituloProdutos: 'PRODUTOS',
+    formatoQtd: '{qtd} x {preco}',
+    rotuloTotal: 'TOTAL',
+    msg1: 'Obrigado!',
+    msg2: '',
+    msg3: '',
+    sepPrincipal: '====================',
+    sepSecao: '--------------------'
+  },
+  completo: {
+    nomeCantina: '🍽️ CANTINA DO BAIRRO 🍽️',
+    vendedor: 'João Silva',
+    caixa: 'Caixa 01',
+    rotuloCupom: 'Cupom Nº',
+    tituloProdutos: 'ITENS VENDIDOS',
+    formatoQtd: '{qtd} unidades x R$ {preco}',
+    rotuloTotal: 'TOTAL A PAGAR',
+    msg1: 'Muito obrigado pela sua compra!',
+    msg2: 'Volte sempre!',
+    msg3: 'Tel: (11) 98765-4321',
+    sepPrincipal: '========================================',
+    sepSecao: '----------------------------------------'
+  },
+  moderno: {
+    nomeCantina: '◆ CANTINA DELÍCIA ◆',
+    vendedor: '',
+    caixa: '',
+    rotuloCupom: 'Recibo',
+    tituloProdutos: 'Sua Compra',
+    formatoQtd: '{qtd}x R$ {preco}',
+    rotuloTotal: 'Valor',
+    msg1: 'Obrigado pela confiança!',
+    msg2: 'Siga-nos: @cantinadelicia',
+    msg3: '',
+    sepPrincipal: '◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆',
+    sepSecao: '◆ ◆ ◆ ◆ ◆ ◆'
+  },
+  minimal: {
+    nomeCantina: 'CANTINA',
+    vendedor: '',
+    caixa: '',
+    rotuloCupom: 'Venda',
+    tituloProdutos: 'Itens',
+    formatoQtd: '{qtd}x R${preco}',
+    rotuloTotal: 'Total',
+    msg1: 'Obrigado!',
+    msg2: '',
+    msg3: '',
+    sepPrincipal: '=======',
+    sepSecao: '-------'
+  }
+};
+
+// Exemplo de produtos para pré-visualização
+const exemploProdutos = [
+  { nome: 'Coxinha', qtd: 1, preco: 5.50 },
+  { nome: 'Suco de Laranja', qtd: 2, preco: 4.50 }
+];
+
+function obterDados() {
+  return {
+    nomeCantina: document.getElementById('nomeCantina').value,
+    vendedor: document.getElementById('vendedor').value,
+    caixa: document.getElementById('caixa').value,
+    rotuloCupom: document.getElementById('rotuloCupom').value,
+    tituloProdutos: document.getElementById('tituloProdutos').value,
+    formatoQtd: document.getElementById('formatoQtd').value,
+    rotuloTotal: document.getElementById('rotuloTotal').value,
+    msg1: document.getElementById('msg1').value,
+    msg2: document.getElementById('msg2').value,
+    msg3: document.getElementById('msg3').value,
+    sepPrincipal: document.getElementById('sepPrincipal').value,
+    sepSecao: document.getElementById('sepSecao').value
+  };
+}
+
+function definirDados(dados) {
+  document.getElementById('nomeCantina').value = dados.nomeCantina || '';
+  document.getElementById('vendedor').value = dados.vendedor || '';
+  document.getElementById('caixa').value = dados.caixa || '';
+  document.getElementById('rotuloCupom').value = dados.rotuloCupom || '';
+  document.getElementById('tituloProdutos').value = dados.tituloProdutos || '';
+  document.getElementById('formatoQtd').value = dados.formatoQtd || '';
+  document.getElementById('rotuloTotal').value = dados.rotuloTotal || '';
+  document.getElementById('msg1').value = dados.msg1 || '';
+  document.getElementById('msg2').value = dados.msg2 || '';
+  document.getElementById('msg3').value = dados.msg3 || '';
+  document.getElementById('sepPrincipal').value = dados.sepPrincipal || '';
+  document.getElementById('sepSecao').value = dados.sepSecao || '';
+}
+
+function centralizarLinha(texto, largura = 40) {
+  const spaces = Math.max(0, Math.floor((largura - texto.length) / 2));
+  return ' '.repeat(spaces) + texto;
+}
+
+function gerarCupom(dados, numeroVenda = 1) {
+  let cupom = '';
+  
+  cupom += dados.sepPrincipal + '\n';
+  cupom += centralizarLinha(dados.nomeCantina) + '\n';
+  cupom += dados.sepPrincipal + '\n';
+  cupom += centralizarLinha(dados.rotuloCupom + ': ' + numeroVenda) + '\n';
+  
+  const now = new Date();
+  const data = now.toLocaleDateString('pt-BR');
+  const hora = now.toLocaleTimeString('pt-BR');
+  cupom += centralizarLinha('Data: ' + data + '  Hora: ' + hora) + '\n';
+  
+  if (dados.vendedor) cupom += centralizarLinha('Operador: ' + dados.vendedor) + '\n';
+  if (dados.caixa) cupom += centralizarLinha(dados.caixa) + '\n';
+  
+  cupom += dados.sepPrincipal + '\n\n';
+  cupom += centralizarLinha(dados.tituloProdutos) + '\n';
+  cupom += dados.sepSecao + '\n';
+  
+  exemploProdutos.forEach(p => {
+    cupom += centralizarLinha(p.nome) + '\n';
+    const formato = dados.formatoQtd
+      .replace('{qtd}', p.qtd)
+      .replace('{preco}', p.preco.toFixed(2));
+    cupom += centralizarLinha(formato + ' = R$ ' + (p.preco * p.qtd).toFixed(2)) + '\n\n';
+  });
+  
+  const total = exemploProdutos.reduce((sum, p) => sum + (p.preco * p.qtd), 0);
+  
+  cupom += dados.sepPrincipal + '\n';
+  cupom += centralizarLinha(dados.rotuloTotal + ': R$ ' + total.toFixed(2)) + '\n';
+  cupom += dados.sepPrincipal + '\n\n';
+  
+  if (dados.msg1) cupom += centralizarLinha(dados.msg1) + '\n';
+  if (dados.msg2) cupom += centralizarLinha(dados.msg2) + '\n';
+  if (dados.msg3) cupom += centralizarLinha(dados.msg3) + '\n';
+  
+  if (dados.msg1 || dados.msg2 || dados.msg3) {
+    cupom += dados.sepPrincipal + '\n';
+  }
+  
+  return cupom;
+}
+
+function atualizarCupom() {
+  const dados = obterDados();
+  const cupom = gerarCupom(dados);
+  document.getElementById('cupomPreview').textContent = cupom;
+}
+
+function resetarPadrao() {
+  definirDados(padraoOriginal);
+  atualizarCupom();
+}
+
+function aplicarTemplate(templateName) {
+  if (templates[templateName]) {
+    definirDados(templates[templateName]);
+    atualizarCupom();
+  }
+}
+
+function imprimirCupom() {
+  const cupom = document.getElementById('cupomPreview').textContent;
+  const janela = window.open('', '', 'width=400,height=600');
+  janela.document.write('<pre style="font-family: Courier New; font-size: 10px;">' + cupom + '</pre>');
+  janela.document.close();
+  janela.print();
+}
+
+function exportarJSON() {
+  const dados = obterDados();
+  const json = JSON.stringify(dados, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cupom-config-' + new Date().getTime() + '.json';
+  a.click();
+}
+
+// Inicializar
+window.addEventListener('load', () => {
+  definirDados(padraoOriginal);
+  atualizarCupom();
+  
+  // Atualizar ao digitar
+  document.querySelectorAll('input[type="text"], textarea').forEach(input => {
+    input.addEventListener('change', atualizarCupom);
+    input.addEventListener('keyup', atualizarCupom);
+  });
+});
+</script>
+
+</body>
+</html>

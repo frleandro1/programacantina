@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=login-menu.html">
+  <title>Redirecionando...</title>
+</head>
+<body>
+  Redirecionando...
+
+  <script>
+    // Verificar se o usuário já está logado
+    const token = localStorage.getItem('token');
+    const userType = localStorage.getItem('userType');
+
+    if (token && userType) {
+      // Usuário já está logado, redirecionar para dashboard apropriado
+      if (userType.toLowerCase() === 'gestor' || userType.toLowerCase() === 'admin' || userType.toLowerCase() === 'administrador') {
+        window.location.href = 'admin.html';
+      } else {
+        window.location.href = 'vendas.html';
+      }
+    } else {
+      // Ir para login
+      window.location.href = 'login.html';
+    }
+  </script>
+</body>
+</html>

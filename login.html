@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Programa Cantina - Login</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <style>
+    body { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh; 
+      background: linear-gradient(135deg, #ff7a45 0%, #ff6a3d 100%); 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .login-card { 
+      background: white; 
+      border-radius: 16px; 
+      padding: 40px; 
+      width: 100%; 
+      max-width: 400px; 
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); 
+    }
+    .login-card h1 { 
+      text-align: center; 
+      margin-bottom: 30px; 
+      color: #333; 
+      font-size: 28px;
+    }
+    .form-group { 
+      margin-bottom: 20px; 
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #555;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .form-group input { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #ddd; 
+      border-radius: 8px; 
+      font-size: 14px; 
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #ff7a45;
+      box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.1);
+    }
+    .btn { 
+      width: 100%; 
+      padding: 14px; 
+      background: linear-gradient(135deg, #ff7a45 0%, #ff6a3d 100%); 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      font-weight: 700; 
+      cursor: pointer; 
+      font-size: 16px;
+    }
+    .btn:hover { 
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 122, 69, 0.3);
+    }
+    .error { 
+      color: #dc3545; 
+      font-size: 14px; 
+      margin-top: 10px; 
+      display: none; 
+      padding: 12px;
+      background: #f8d7da;
+      border-radius: 6px;
+    }
+    .success-screen {
+      display: none;
+      text-align: center;
+    }
+    .success-screen.show {
+      display: block;
+    }
+    .role-badge {
+      display: inline-block;
+      margin: 20px 0;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+    }
+    .role-badge.admin {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .role-badge.vendedor {
+      background: linear-gradient(135deg, #ff7a45 0%, #ff6a3d 100%);
+    }
+    .role-badge.usuario {
+      background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    }
+    .welcome-msg {
+      color: #333;
+      margin: 20px 0;
+      font-size: 16px;
+    }
+    .loading-spinner {
+      display: none;
+      margin: 20px 0;
+    }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #ff7a45;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .login-form {
+      display: block;
+    }
+    .login-form.hide {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h1>🍽️ Programa Cantina</h1>
+    
+    <!-- FORMULÁRIO DE LOGIN -->
+    <div class="login-form" id="loginForm">
+      <form id="formLogin">
+        <div class="form-group">
+          <label for="username">Usuário</label>
+          <input type="text" id="username" placeholder="Digite seu usuário" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn">Entrar</button>
+        <div class="error" id="errorMsg"></div>
+      </form>
+    </div>
+
+    <!-- TELA DE SUCESSO - EXIBE ATRIBUIÇÃO -->
+    <div class="success-screen" id="successScreen">
+      <div class="welcome-msg" id="welcomeMsg">Bem-vindo!</div>
+      <div class="role-badge" id="roleBadge">Carregando...</div>
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p style="color: #999; font-size: 12px; margin-top: 10px;">Redirecionando...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const roleLabels = {
+      'gestor': 'Administrador',
+      'admin': 'Administrador',
+      'administrador': 'Administrador',
+      'atendente': 'Vendedor',
+      'vendedor': 'Vendedor',
+      'producao': 'Produção',
+      'usuario': 'Usuário'
+    };
+
+    const roleClass = {
+      'gestor': 'admin',
+      'admin': 'admin',
+      'administrador': 'admin',
+      'atendente': 'vendedor',
+      'vendedor': 'vendedor',
+      'producao': 'vendedor',
+      'usuario': 'usuario'
+    };
+
+    document.getElementById('formLogin').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('errorMsg');
+      
+      try {
+        const res = await fetch('api/auth.php?action=login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        
+        if (data.sucesso) {
+          const userType = data.usuario?.tipo || 'usuario';
+          const userName = data.usuario?.nome || username;
+          const roleLabel = roleLabels[userType.toLowerCase()] || 'Usuário';
+          const roleClass = roleClass[userType.toLowerCase()] || 'usuario';
+          
+          // Salvar dados
+          localStorage.setItem('usuario', JSON.stringify(data.usuario));
+          localStorage.setItem('token', data.token || 'temp-token');
+          localStorage.setItem('username', username);
+          localStorage.setItem('userType', userType);
+          
+          // Mostrar tela de sucesso
+          document.getElementById('loginForm').classList.add('hide');
+          document.getElementById('successScreen').classList.add('show');
+          document.getElementById('welcomeMsg').textContent = `Bem-vindo, ${userName}!`;
+          document.getElementById('roleBadge').textContent = `👤 ${roleLabel}`;
+          document.getElementById('roleBadge').className = `role-badge ${roleClass}`;
+          
+          // Redirecionar após 2 segundos
+          setTimeout(() => {
+            if (userType.toLowerCase() === 'gestor' || userType.toLowerCase() === 'admin' || userType.toLowerCase() === 'administrador') {
+              window.location.href = 'admin.html';
+            } else {
+              window.location.href = 'vendas.html';
+            }
+          }, 2000);
+        } else {
+          errorMsg.textContent = data.mensagem || 'Erro ao fazer login';
+          errorMsg.style.display = 'block';
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Erro de conexão';
+        errorMsg.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

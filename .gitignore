@@ -1,0 +1,19 @@
+# Logs
+logs/
+*.log
+
+# Uploads e arquivos gerados em runtime
+uploads/
+
+# Config local/sensivel (ajuste se quiser versionar)
+.env
+.env.*
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Arquivos temporarios
+*.tmp
+*.bak
