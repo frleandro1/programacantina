@@ -21,6 +21,17 @@ async function carregarConfiguracoes() {
       // Nome da cantina
       document.getElementById('nomeCantina').value = data.dados.nome_cantina || 'Programa Cantina';
       
+      // Impressora Térmica
+      const largura = data.dados.impressora_largura || '80';
+      const autoprint = data.dados.impressora_autoprint || 'nao';
+      const fonte = data.dados.impressora_fonte || '9';
+      const selLargura = document.getElementById('impressoraLargura');
+      if (selLargura) selLargura.value = largura;
+      const selAuto = document.getElementById('impressoraAutoprint');
+      if (selAuto) selAuto.value = autoprint;
+      const inpFonte = document.getElementById('impressoraFonte');
+      if (inpFonte) inpFonte.value = fonte;
+      
       // Logo
       if (data.dados.logo_url) {
         document.getElementById('logoPreview').innerHTML = `<img src="${data.dados.logo_url}" alt="Logo">`;
@@ -240,5 +251,32 @@ async function deletarBanner() {
     }
   } catch (error) {
     mostrarMensagem('configMessage', 'Erro ao remover banner', 'error');
+  }
+}
+
+async function salvarImpressora() {
+  const largura  = document.getElementById('impressoraLargura')?.value  || '80';
+  const autoprint = document.getElementById('impressoraAutoprint')?.value || 'nao';
+  const fonte    = document.getElementById('impressoraFonte')?.value    || '9';
+
+  const configs = {
+    impressora_largura:   largura,
+    impressora_autoprint: autoprint,
+    impressora_fonte:     fonte
+  };
+
+  try {
+    for (const [chave, valor] of Object.entries(configs)) {
+      const formData = new FormData();
+      formData.append('chave', chave);
+      formData.append('valor', valor);
+      await fetch(API_URL + '/configuracoes.php?action=atualizar', {
+        method: 'POST',
+        body: formData
+      });
+    }
+    mostrarMensagem('configMessage', '✓ Impressora configurada com sucesso!', 'success');
+  } catch (error) {
+    mostrarMensagem('configMessage', 'Erro ao salvar configurações da impressora', 'error');
   }
 }

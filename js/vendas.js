@@ -1,7 +1,9 @@
 let produtos = [];
 let carrinho = [];
 let filtroAtual = 'Salgado';
-const CUPOM_LARGURA = 40;
+let CUPOM_LARGURA = 40;          // sobrescrito pelas configs da impressora
+let _impressoraAutoprint = false; // impressão automática ao exibir o cupom
+let _impressoraFonte = 9;         // tamanho da fonte em pt
 
 function padRight(texto, tamanho) {
   return (texto || '').toString().padEnd(tamanho, ' ');
@@ -213,6 +215,41 @@ function centralizarLinha(texto, largura = 40) {
   return ' '.repeat(spaces) + texto;
 }
 
+async function carregarConfigImpressora() {
+  try {
+    const res  = await fetch('api/configuracoes.php?action=obter', { cache: 'no-store' });
+    const body = await res.text();
+    if (!body) return;
+    const data = JSON.parse(body);
+    if (!data.sucesso || !data.dados) return;
+
+    const largura  = data.dados.impressora_largura   || '80';
+    _impressoraAutoprint = (data.dados.impressora_autoprint || 'nao') === 'sim';
+    _impressoraFonte     = parseInt(data.dados.impressora_fonte || '9', 10);
+
+    // Colunas por largura de papel
+    CUPOM_LARGURA = largura === '58' ? 32 : 48;
+
+    // Injetar CSS de impressão dinâmico
+    let styleEl = document.getElementById('impressoraPrintStyle');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'impressoraPrintStyle';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = [
+      '@media print {',
+      `  @page { size: ${largura}mm auto; margin: 1mm; }`,
+      `  .modal-content { max-width: ${largura}mm !important; width: fit-content !important; }`,
+      '  .modal-body { padding: 1mm !important; margin: 0 !important; }',
+      `  #cupomPreview { font-size: ${_impressoraFonte}pt !important; line-height: 1.05 !important; display: inline-block !important; }`,
+      '}'
+    ].join('\n');
+  } catch (err) {
+    console.warn('Config impressora não carregada, usando padrões:', err);
+  }
+}
+
 function mostrarCupom(idVenda, itens) {
   try {
     const modal = document.getElementById('cupomModal');
@@ -273,6 +310,11 @@ function mostrarCupom(idVenda, itens) {
     
     preview.textContent = cupom;
     modal.classList.add('show');
+
+    // Impressão automática configurada no admin
+    if (_impressoraAutoprint) {
+      setTimeout(() => imprimirCupomDireto(), 300);
+    }
   } catch (err) {
     console.error('Erro ao gerar cupom:', err);
     alert('Erro ao gerar cupom: ' + err.message);
@@ -284,6 +326,59 @@ function fecharModal() {
   modal.classList.remove('show');
 }
 
+function imprimirCupomDireto() {
+  const modal = document.getElementById('cupomModal');
+  const preview = document.getElementById('cupomPreview');
+  if (!modal || !modal.classList.contains('show') || !preview) {
+    return;
+  }
+
+  window.focus();
+  window.print();
+}
+
+function imprimirTesteRapido() {
+  try {
+    const modal = document.getElementById('cupomModal');
+    const preview = document.getElementById('cupomPreview');
+
+    if (!modal || !preview) {
+      alert('Não foi possível abrir o modal de cupom para teste.');
+      return;
+    }
+
+    const now = new Date();
+    const dataHora = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
+    const sep = '='.repeat(CUPOM_LARGURA);
+
+    let cupom = '';
+    cupom += sep + '\n';
+    cupom += centralizarLinha('TESTE IMPRESSORA TERMICA', CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    cupom += centralizarLinha(`Data: ${dataHora}`, CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha(`Largura: ${CUPOM_LARGURA} colunas`, CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha(`Fonte: ${_impressoraFonte}pt`, CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    cupom += '0123456789012345678901234567890123456789\n';
+    cupom += 'Linha para verificar alinhamento e corte\n';
+    cupom += sep + '\n';
+    cupom += centralizarLinha('FIM DO TESTE', CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+
+    preview.textContent = cupom;
+    modal.classList.add('show');
+
+    // Fluxo único e previsível: impressão pelo navegador em modo kiosk.
+    setTimeout(() => {
+      window.focus();
+      window.print();
+    }, 250);
+  } catch (err) {
+    console.error('Erro no teste de impressão:', err);
+    alert('Falha ao executar teste de impressão: ' + err.message);
+  }
+}
+
 function novoPedido() {
   fecharModal();
   carregarProdutos();
@@ -293,7 +388,7 @@ function logout() {
   localStorage.removeItem('usuario');
   localStorage.removeItem('sessaoCaixaId');
   localStorage.removeItem('aberturaCaixaEm');
-  window.location.href = 'login.html';
+  window.location.href = 'login-menu.html';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -301,11 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const userId = user.id_usuario || user.id;
   
   if (!userId) {
-    window.location.href = 'login.html';
+    window.location.href = 'login-menu.html';
     return;
   }
   
   carregarProdutos();
+  carregarConfigImpressora();
   
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {

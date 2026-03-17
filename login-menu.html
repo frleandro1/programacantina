@@ -338,15 +338,20 @@
             document.getElementById('loginForm').reset();
         }
 
+        function montarCaminhosApi(rota) {
+            const basePath = window.location.pathname.replace(/\/[^/]*$/, '');
+            return [
+                basePath + '/api/' + rota,
+                '/Cantina/api/' + rota,
+                '/api/' + rota
+            ];
+        }
+
         async function testarConexao() {
             const statusTest = document.getElementById('statusTest');
             statusTest.innerHTML = '<span class="spinner"></span>Testando conexão...';
 
-            const endpoints = [
-                'api/diagnostico.php?t=' + Date.now(),
-                '/Cantina/api/diagnostico.php?t=' + Date.now(),
-                '/api/diagnostico.php?t=' + Date.now()
-            ];
+            const endpoints = montarCaminhosApi('system-status.php?t=' + Date.now());
 
             try {
                 let resposta = null;
@@ -369,7 +374,9 @@
                 }
 
                 if (resposta && resposta.ok) {
-                    statusTest.innerHTML = '✅ Servidor respondendo normalmente';
+                    const texto = await resposta.text();
+                    const dados = texto ? JSON.parse(texto) : {};
+                    statusTest.innerHTML = dados.mensagem ? '✅ ' + dados.mensagem : '✅ Servidor respondendo normalmente';
                     statusTest.style.color = '#28a745';
                 } else if (resposta) {
                     statusTest.innerHTML = '⚠️ Servidor indisponível (HTTP ' + resposta.status + ')';
@@ -385,11 +392,7 @@
         }
 
         async function requisitarLogin(username, password) {
-            const endpoints = [
-                'api/auth.php?action=login',
-                '/Cantina/api/auth.php?action=login',
-                '/api/auth.php?action=login'
-            ];
+            const endpoints = montarCaminhosApi('auth.php?action=login');
 
             let lastResponse = null;
             let lastError = null;

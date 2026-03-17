@@ -424,42 +424,83 @@ body {
   font-size: 20px;
 }
 
+.btn-teste {
+  margin-top: 10px;
+  background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+  color: #fff;
+}
+
+.btn-teste:hover {
+  background: linear-gradient(135deg, #0b5ed7, #0aa2c0);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
+}
+
 @media print {
+  @page {
+    margin: 1mm;
+  }
+
+  html,
+  body {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
   body * {
     visibility: hidden;
   }
+
   #cupomModal,
   #cupomModal * {
     visibility: visible;
   }
+
   #cupomModal {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    background: white;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
   }
+
   .modal-content {
     box-shadow: none !important;
-    max-width: 80mm;
-    margin: 0 auto;
-    background: white;
+    border: none !important;
+    max-width: 80mm; /* sobrescrito dinamicamente pelo js/vendas.js */
+    width: fit-content;
+    margin: 0 !important;
+    background: #fff !important;
   }
+
   .modal-header,
   .modal-footer {
     display: none !important;
   }
+
   .modal-body {
-    padding: 10mm !important;
+    padding: 1mm !important;
+    margin: 0 !important;
   }
+
   #cupomPreview {
     background: white !important;
     border: none !important;
     padding: 0 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 9pt; /* sobrescrito dinamicamente pelo js/vendas.js */
+    line-height: 1.05;
+    white-space: pre;
+    display: inline-block;
   }
 }
 
@@ -536,6 +577,7 @@ body {
       <span id="totalText">R$ 0,00</span>
     </div>
     <button id="btnFinalizar" class="btn btn-primary" disabled> Finalizar Venda</button>
+    <button class="btn btn-teste" onclick="imprimirTesteRapido()">Teste Impressora (1 clique)</button>
   </div>
 </div>
 <div id="cupomModal" class="modal">
@@ -547,7 +589,7 @@ body {
       <div id="cupomPreview"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-print" onclick="window.print()">Imprimir</button>
+      <button class="btn-print" onclick="imprimirCupomDireto()">Imprimir</button>
       <button class="btn-novo" onclick="novoPedido()">Novo Pedido</button>
       <button class="btn-cancelar" onclick="fecharModal()">Fechar</button>
     </div>

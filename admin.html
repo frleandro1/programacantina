@@ -662,6 +662,39 @@ input[type=\"color\"] {
           </div>
         </div>
       </div>
+
+      <!-- IMPRESSORA TÉRMICA -->
+      <div class="config-grid" style="margin-top: 30px;">
+        <div class="config-card">
+          <h2>🖨️ Impressora Térmica</h2>
+          <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Configurações de impressão para cupom fiscal</p>
+
+          <div class="form-group">
+            <label for="impressoraLargura">Largura do Papel</label>
+            <select id="impressoraLargura" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;">
+              <option value="58">58mm — Compacta (32 colunas)</option>
+              <option value="80" selected>80mm — Padrão (48 colunas)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="impressoraAutoprint">Impressão Automática</label>
+            <select id="impressoraAutoprint" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;">
+              <option value="nao" selected>Não — Clique manual no botão</option>
+              <option value="sim">Sim — Imprimir ao finalizar venda</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="impressoraFonte">Tamanho da Fonte (pt)</label>
+            <input type="number" id="impressoraFonte" value="9" min="7" max="14"
+              style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;box-sizing:border-box;">
+            <small style="color:var(--muted);">Recomendado: 9pt para 58mm, 10pt para 80mm</small>
+          </div>
+
+          <button type="button" class="btn btn-primary" onclick="salvarImpressora()">✓ Salvar Impressora</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

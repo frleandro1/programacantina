@@ -80,7 +80,7 @@ switch ($action) {
         break;
 
     case 'atualizar':
-        // Atualizar uma configuração
+        // Atualizar ou inserir uma configuração
         $json = ler_json_input();
         $chave = isset($_POST['chave']) ? $_POST['chave'] : ($json['chave'] ?? '');
         $valor = isset($_POST['valor']) ? $_POST['valor'] : ($json['valor'] ?? '');
@@ -89,9 +89,9 @@ switch ($action) {
             responder(false, 'Chave ou valor não fornecidos');
         }
         
-        $sql = "UPDATE configuracoes SET valor = ? WHERE chave = ?";
+        $sql = "INSERT INTO configuracoes (chave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = VALUES(valor)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ss", $valor, $chave);
+        $stmt->bind_param("ss", $chave, $valor);
         
         if ($stmt->execute()) {
             responder(true, 'Configuração atualizada com sucesso');

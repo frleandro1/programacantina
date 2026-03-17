@@ -150,7 +150,10 @@ INSERT INTO configuracoes (chave, valor, tipo, descricao) VALUES
 ('logo_url', '', 'string', 'URL da logo'),
 ('banner_url', '', 'string', 'URL do banner'),
 ('cupom_titulo', 'Programa Cantina', 'string', 'Título no cupom'),
-('cupom_numero_colunas', '40', 'number', 'Número de colunas no cupom')
+('cupom_numero_colunas', '40', 'number', 'Número de colunas no cupom'),
+('impressora_largura', '80', 'string', 'Largura do papel da impressora (58 ou 80 mm)'),
+('impressora_autoprint', 'nao', 'string', 'Impressão automática ao finalizar venda (sim/nao)'),
+('impressora_fonte', '9', 'number', 'Tamanho da fonte na impressão térmica (pt)')
 ON DUPLICATE KEY UPDATE valor = VALUES(valor);
 
 -- Inserir produtos de exemplo
