@@ -5,7 +5,7 @@ USE programa_cantina;
 -- Tabela de usuários (atualizada com campos faltando)
 CREATE TABLE IF NOT EXISTS usuarios (
     id_usuario INT PRIMARY KEY AUTO_INCREMENT,
-    id INT AUTO_INCREMENT UNIQUE,
+    id INT UNIQUE,
     username VARCHAR(50) NOT NULL UNIQUE,
     login VARCHAR(50),
     password VARCHAR(255) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 -- Tabela de produtos (atualizada com campos faltando)
 CREATE TABLE IF NOT EXISTS produtos (
     id_produto INT PRIMARY KEY AUTO_INCREMENT,
-    id INT AUTO_INCREMENT UNIQUE,
+    id INT UNIQUE,
     nome VARCHAR(100) NOT NULL,
     descricao TEXT,
     preco DECIMAL(10, 2) NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS produtos (
 -- Tabela de vendas (atualizada com campos faltando)
 CREATE TABLE IF NOT EXISTS vendas (
     id_venda INT PRIMARY KEY AUTO_INCREMENT,
-    id INT AUTO_INCREMENT UNIQUE,
+    id INT UNIQUE,
     numero_pedido INT UNIQUE,
     numero_venda_dia INT,
     numero_venda_turno INT,
@@ -135,9 +135,9 @@ CREATE TABLE IF NOT EXISTS configuracoes (
 );
 
 -- Inserir usuário admin padrão
-INSERT INTO usuarios (username, login, password, email, tipo, papel, nome) 
-VALUES ('admin', 'admin', SHA2('admin123', 256), 'admin@cantina.com', 'admin', 'admin', 'Administrador')
-ON DUPLICATE KEY UPDATE password = SHA2('admin123', 256);
+INSERT INTO usuarios (username, login, password, senha, email, tipo, papel, nome) 
+VALUES ('admin', 'admin', SHA2('admin123', 256), SHA2('admin123', 256), 'admin@cantina.com', 'admin', 'admin', 'Administrador')
+ON DUPLICATE KEY UPDATE password = SHA2('admin123', 256), senha = SHA2('admin123', 256);
 
 -- Inserir configurações padrão
 INSERT INTO configuracoes (chave, valor, tipo, descricao) VALUES
@@ -151,6 +151,7 @@ INSERT INTO configuracoes (chave, valor, tipo, descricao) VALUES
 ('banner_url', '', 'string', 'URL do banner'),
 ('cupom_titulo', 'Programa Cantina', 'string', 'Título no cupom'),
 ('cupom_numero_colunas', '40', 'number', 'Número de colunas no cupom'),
+('impressora_nome', '', 'string', 'Nome da impressora padrão para cupons (vazio = padrão do Windows)'),
 ('impressora_largura', '80', 'string', 'Largura do papel da impressora (58 ou 80 mm)'),
 ('impressora_autoprint', 'nao', 'string', 'Impressão automática ao finalizar venda (sim/nao)'),
 ('impressora_fonte', '9', 'number', 'Tamanho da fonte na impressão térmica (pt)')

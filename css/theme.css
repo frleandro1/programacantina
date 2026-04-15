@@ -23,7 +23,7 @@ body {
 }
 
 .topbar {
-  height: 56px;
+  height: 70px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -38,10 +38,20 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-weight: 700;
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 50px;
+}
+
+.brand-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  flex-shrink: 0;
 }
 
 .nav {

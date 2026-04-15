@@ -20,6 +20,51 @@ require_once __DIR__ . '/../db/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
+function get_usuarios_columns($conn) {
+    static $columns = null;
+
+    if ($columns !== null) {
+        return $columns;
+    }
+
+    $columns = [];
+    $result = $conn->query('SHOW COLUMNS FROM usuarios');
+
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $columns[] = $row['Field'];
+        }
+    }
+
+    return $columns;
+}
+
+function has_usuario_column($conn, $column) {
+    return in_array($column, get_usuarios_columns($conn), true);
+}
+
+function get_usuario_select_map($conn) {
+    return [
+        'id' => has_usuario_column($conn, 'id_usuario') ? 'id_usuario' : 'id',
+        'login' => has_usuario_column($conn, 'login') ? 'login' : 'username',
+        'senha' => has_usuario_column($conn, 'senha') ? 'senha' : 'password',
+        'papel' => has_usuario_column($conn, 'papel') ? 'papel' : 'tipo',
+        'nome' => has_usuario_column($conn, 'nome') ? 'nome' : null,
+        'email' => has_usuario_column($conn, 'email') ? 'email' : null,
+    ];
+}
+
+function normalize_usuario_role($papel) {
+    $papel = trim((string)$papel);
+    $allowedRoles = ['atendente', 'producao', 'gestor', 'admin', 'administrador'];
+
+    if (!in_array($papel, $allowedRoles, true)) {
+        return 'atendente';
+    }
+
+    return $papel;
+}
+
 function ensure_caixa_schema($conn) {
     $conn->query("CREATE TABLE IF NOT EXISTS caixa_sessoes (
         id_sessao INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,8 +108,18 @@ if ($method === 'POST' && $action === 'login') {
         exit;
     }
 
-    // Schema real: usuarios(login, senha, id_usuario, papel, nome)
-    $stmt = $conn->prepare('SELECT id_usuario, login, senha, papel, nome FROM usuarios WHERE login = ? LIMIT 1');
+    $selectMap = get_usuario_select_map($conn);
+    $sql = sprintf(
+        'SELECT %s AS id_usuario, %s AS login, %s AS senha, %s AS papel, %s AS nome FROM usuarios WHERE %s = ? LIMIT 1',
+        $selectMap['id'],
+        $selectMap['login'],
+        $selectMap['senha'],
+        $selectMap['papel'],
+        $selectMap['nome'] ?: 'NULL',
+        $selectMap['login']
+    );
+
+    $stmt = $conn->prepare($sql);
     if (!$stmt) {
         echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na preparação: ' . $conn->error]);
         exit;
@@ -131,6 +186,215 @@ if ($method === 'POST' && $action === 'logout') {
     exit;
 }
 
+if ($method === 'POST' && $action === 'criar_usuario') {
+    $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    $login = trim($data['login'] ?? '');
+    $senha = (string)($data['senha'] ?? '');
+    $nome = trim($data['nome'] ?? '');
+    $papel = trim($data['papel'] ?? 'atendente');
+    $email = trim((string)($data['email'] ?? ''));
+
+    if ($login === '' || $senha === '' || $nome === '') {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Login, senha e nome são obrigatórios']);
+        exit;
+    }
+
+    if (strlen($senha) < 6) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'A senha deve ter no mínimo 6 caracteres']);
+        exit;
+    }
+
+    $papel = normalize_usuario_role($papel);
+
+    $columns = get_usuarios_columns($conn);
+    $loginColumn = has_usuario_column($conn, 'login') ? 'login' : 'username';
+
+    $stmtCheck = $conn->prepare("SELECT 1 FROM usuarios WHERE {$loginColumn} = ? LIMIT 1");
+    if (!$stmtCheck) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na verificação: ' . $conn->error]);
+        exit;
+    }
+
+    $stmtCheck->bind_param('s', $login);
+    $stmtCheck->execute();
+    $resultCheck = $stmtCheck->get_result();
+    if ($resultCheck && $resultCheck->fetch_row()) {
+        $stmtCheck->close();
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Já existe um usuário com esse login']);
+        exit;
+    }
+    $stmtCheck->close();
+
+    $hash = password_hash($senha, PASSWORD_DEFAULT);
+    $insertColumns = [];
+    $insertValues = [];
+    $insertTypes = '';
+    $params = [];
+
+    $fieldMap = [
+        'login' => $login,
+        'username' => $login,
+        'senha' => $hash,
+        'password' => $hash,
+        'nome' => $nome,
+        'papel' => $papel,
+        'tipo' => $papel,
+        'email' => $email !== '' ? $email : null,
+        'status' => 'ativo',
+    ];
+
+    foreach ($fieldMap as $column => $value) {
+        if (!in_array($column, $columns, true)) {
+            continue;
+        }
+
+        $insertColumns[] = $column;
+        $insertValues[] = '?';
+        $insertTypes .= 's';
+        $params[] = $value;
+    }
+
+    if (empty($insertColumns)) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Estrutura da tabela de usuários não suportada']);
+        exit;
+    }
+
+    $sql = sprintf(
+        'INSERT INTO usuarios (%s) VALUES (%s)',
+        implode(', ', $insertColumns),
+        implode(', ', $insertValues)
+    );
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na preparação: ' . $conn->error]);
+        exit;
+    }
+
+    $stmt->bind_param($insertTypes, ...$params);
+
+    if ($stmt->execute()) {
+        echo json_encode(['sucesso' => true, 'mensagem' => 'Usuário criado com sucesso']);
+    } else {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao criar usuário: ' . $stmt->error]);
+    }
+
+    $stmt->close();
+    exit;
+}
+
+if ($method === 'POST' && $action === 'editar_usuario') {
+    $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    $id = (int)($data['id'] ?? 0);
+    $login = trim($data['login'] ?? '');
+    $senha = (string)($data['senha'] ?? '');
+    $nome = trim($data['nome'] ?? '');
+    $papel = normalize_usuario_role($data['papel'] ?? 'atendente');
+    $email = trim((string)($data['email'] ?? ''));
+
+    if ($id <= 0) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'ID inválido']);
+        exit;
+    }
+
+    if ($login === '' || $nome === '') {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Login e nome são obrigatórios']);
+        exit;
+    }
+
+    if ($senha !== '' && strlen($senha) < 6) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'A senha deve ter no mínimo 6 caracteres']);
+        exit;
+    }
+
+    $selectMap = get_usuario_select_map($conn);
+    $columns = get_usuarios_columns($conn);
+    $idColumn = $selectMap['id'];
+    $loginColumn = $selectMap['login'];
+
+    $stmtCheck = $conn->prepare("SELECT 1 FROM usuarios WHERE {$loginColumn} = ? AND {$idColumn} <> ? LIMIT 1");
+    if (!$stmtCheck) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na verificação: ' . $conn->error]);
+        exit;
+    }
+
+    $stmtCheck->bind_param('si', $login, $id);
+    $stmtCheck->execute();
+    $resultCheck = $stmtCheck->get_result();
+    if ($resultCheck && $resultCheck->fetch_row()) {
+        $stmtCheck->close();
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Já existe um usuário com esse login']);
+        exit;
+    }
+    $stmtCheck->close();
+
+    $updates = [];
+    $types = '';
+    $params = [];
+
+    $fieldMap = [
+        'login' => $login,
+        'username' => $login,
+        'nome' => $nome,
+        'papel' => $papel,
+        'tipo' => $papel,
+        'email' => $email,
+    ];
+
+    foreach ($fieldMap as $column => $value) {
+        if (!in_array($column, $columns, true)) {
+            continue;
+        }
+
+        $updates[] = "{$column} = ?";
+        $types .= 's';
+        $params[] = $value;
+    }
+
+    if ($senha !== '') {
+        $hash = password_hash($senha, PASSWORD_DEFAULT);
+
+        if (in_array('senha', $columns, true)) {
+            $updates[] = 'senha = ?';
+            $types .= 's';
+            $params[] = $hash;
+        }
+
+        if (in_array('password', $columns, true)) {
+            $updates[] = 'password = ?';
+            $types .= 's';
+            $params[] = $hash;
+        }
+    }
+
+    if (empty($updates)) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Nenhum campo disponível para atualização']);
+        exit;
+    }
+
+    $sql = sprintf('UPDATE usuarios SET %s WHERE %s = ?', implode(', ', $updates), $idColumn);
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na preparação: ' . $conn->error]);
+        exit;
+    }
+
+    $types .= 'i';
+    $params[] = $id;
+    $stmt->bind_param($types, ...$params);
+
+    if ($stmt->execute()) {
+        echo json_encode(['sucesso' => true, 'mensagem' => 'Usuário atualizado com sucesso']);
+    } else {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao atualizar usuário: ' . $stmt->error]);
+    }
+
+    $stmt->close();
+    exit;
+}
+
 if ($method === 'GET' && $action === 'verificar') {
     if (isset($_SESSION['usuario_id'])) {
         echo json_encode([
@@ -147,7 +411,16 @@ if ($method === 'GET' && $action === 'verificar') {
 }
 
 if ($method === 'GET' && $action === 'list_usuarios') {
-    $sql = "SELECT id_usuario as id, login as username, email, papel as tipo FROM usuarios ORDER BY login";
+    $selectMap = get_usuario_select_map($conn);
+    $sql = sprintf(
+        'SELECT %s AS id, %s AS username, %s AS nome, %s AS email, %s AS tipo FROM usuarios ORDER BY %s',
+        $selectMap['id'],
+        $selectMap['login'],
+        $selectMap['nome'] ?: 'NULL',
+        $selectMap['email'] ?: 'NULL',
+        $selectMap['papel'],
+        $selectMap['login']
+    );
     $result = $conn->query($sql);
     $usuarios = [];
     
@@ -156,6 +429,7 @@ if ($method === 'GET' && $action === 'list_usuarios') {
             $usuarios[] = [
                 'id' => (int)$row['id'],
                 'username' => $row['username'],
+                'nome' => $row['nome'],
                 'email' => $row['email'],
                 'tipo' => $row['tipo']
             ];
@@ -178,7 +452,8 @@ if ($method === 'POST' && $action === 'deletar_usuario') {
         exit;
     }
     
-    $stmt = $conn->prepare('DELETE FROM usuarios WHERE id_usuario = ?');
+    $idColumn = get_usuario_select_map($conn)['id'];
+    $stmt = $conn->prepare("DELETE FROM usuarios WHERE {$idColumn} = ?");
     if (!$stmt) {
         echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na preparação: ' . $conn->error]);
         exit;

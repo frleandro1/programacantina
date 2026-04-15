@@ -28,7 +28,7 @@ async function carregarProdutos() {
       produtos = produtos.map(p => ({
         id: p.id,
         nome: p.nome,
-        categoria: p.categoria || 'Outros',
+        categoria: p.categoria || 'Outro',
         preco: p.preco,
         estoque: p.estoque
       }));
@@ -104,13 +104,24 @@ function atualizarContadores() {
   document.getElementById('totalProdutos').textContent = produtos.length;
 }
 
+function normalizarCategoria(valor) {
+  return String(valor || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 function filtrarProdutos() {
   const search = document.getElementById('searchProduto').value.toLowerCase();
   const categoria = document.getElementById('filterCategoria').value;
+  const categoriaNormalizada = normalizarCategoria(categoria);
+  const ehTodos = categoriaNormalizada === '' || categoriaNormalizada === 'todos' || categoriaNormalizada === 'todas';
   
   produtosFiltrados = produtos.filter(p => {
     const matchSearch = p.nome.toLowerCase().includes(search);
-    const matchCategoria = !categoria || p.categoria.toLowerCase() === categoria.toLowerCase();
+    const categoriaProduto = normalizarCategoria(p.categoria);
+    const matchCategoria = ehTodos || categoriaProduto === categoriaNormalizada;
     return matchSearch && matchCategoria;
   });
   
@@ -199,7 +210,7 @@ async function salvarProduto(e) {
   const id = document.getElementById('produtoId').value;
   const dados = {
     nome: document.getElementById('produtoNome').value,
-    categoria: document.getElementById('produtoCategoria').value,
+    categoria: document.getElementById('produtoCategoria').value || 'Outro',
     preco: parseFloat(document.getElementById('produtoPreco').value),
     estoque: parseInt(document.getElementById('produtoEstoque').value)
   };

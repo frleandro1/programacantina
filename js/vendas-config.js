@@ -11,23 +11,41 @@ async function carregarConfiguracoesPedidos() {
     
     if (data.sucesso && data.dados) {
       console.log('[Vendas Config] Aplicando configurações...');
+      const nomeCantina = data.dados.nome_cantina || 'Cantina IBFC';
+      const fallbackLogo = 'LOGO_F.png';
+      const logoUrl = data.dados.logo_url ? `${data.dados.logo_url}?t=${Date.now()}` : fallbackLogo;
       
       // Atualizar nome da cantina
-      if (data.dados.nome_cantina) {
-        document.querySelectorAll('.brand').forEach(el => {
-          el.textContent = data.dados.nome_cantina;
-        });
-        document.title = data.dados.nome_cantina + ' - Vendas';
-        console.log('[Vendas Config] Nome atualizado:', data.dados.nome_cantina);
-      }
-      
-      // Adicionar logo se existir
-      if (data.dados.logo_url) {
-        const logoEl = document.getElementById('logoContainer');
-        if (logoEl) {
-          logoEl.innerHTML = `<img src="${data.dados.logo_url}?t=${Date.now()}" alt="Logo" class="logo-img">`;
-          console.log('[Vendas Config] Logo adicionado:', data.dados.logo_url);
+      document.querySelectorAll('.brand').forEach(el => {
+        let logoImg = el.querySelector('.brand-logo');
+
+        if (!logoImg && logoUrl) {
+          logoImg = document.createElement('img');
+          logoImg.className = 'brand-logo';
+          logoImg.alt = 'Logo Cantina';
         }
+
+        if (logoImg) {
+          logoImg.src = logoUrl;
+          logoImg.onerror = () => {
+            logoImg.onerror = null;
+            logoImg.src = `${fallbackLogo}?t=${Date.now()}`;
+          };
+        }
+
+        el.textContent = '';
+        if (logoImg) {
+          el.appendChild(logoImg);
+        }
+        el.appendChild(document.createTextNode(` ${nomeCantina}`));
+      });
+      document.title = nomeCantina + ' - Vendas';
+      console.log('[Vendas Config] Nome atualizado:', nomeCantina);
+      
+      // Não renderizar logo abaixo da barra; manter somente ao lado do nome
+      const logoEl = document.getElementById('logoContainer');
+      if (logoEl) {
+        logoEl.innerHTML = '';
       }
       
       // Adicionar banner se existir

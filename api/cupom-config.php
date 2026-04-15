@@ -101,14 +101,14 @@ if ($action === 'salvar' && $method === 'POST') {
 if ($action === 'resetar' && $method === 'POST') {
     try {
         $padrao = [
-            'cupom_nome_cantina' => 'PROGRAMA CANTINA',
+            'cupom_nome_cantina' => 'Cantina IBFC',
             'cupom_vendedor' => '',
             'cupom_caixa' => '',
             'cupom_rotulo_cupom' => 'Venda Nº',
             'cupom_titulo_produtos' => 'PRODUTOS',
             'cupom_formato_qtd' => '{qtd} x R$ {preco}',
             'cupom_rotulo_total' => 'TOTAL',
-            'cupom_mensagem_1' => 'Obrigado pela preferência!',
+            'cupom_mensagem_1' => 'DEUS ABENÇOE!',
             'cupom_mensagem_2' => '',
             'cupom_mensagem_3' => '',
             'cupom_separador_principal' => '========================================',

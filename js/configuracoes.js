@@ -22,9 +22,12 @@ async function carregarConfiguracoes() {
       document.getElementById('nomeCantina').value = data.dados.nome_cantina || 'Programa Cantina';
       
       // Impressora Térmica
+      const nome = data.dados.impressora_nome || '';
       const largura = data.dados.impressora_largura || '80';
       const autoprint = data.dados.impressora_autoprint || 'nao';
       const fonte = data.dados.impressora_fonte || '9';
+      const inpNome = document.getElementById('impressoraNome');
+      if (inpNome) inpNome.value = nome;
       const selLargura = document.getElementById('impressoraLargura');
       if (selLargura) selLargura.value = largura;
       const selAuto = document.getElementById('impressoraAutoprint');
@@ -254,12 +257,39 @@ async function deletarBanner() {
   }
 }
 
+async function detectarImpressoras() {
+  const lista = document.getElementById('impressoraLista');
+  if (!lista) return;
+  lista.style.display = 'block';
+  lista.innerHTML = '<option value="">⏳ Detectando...</option>';
+  try {
+    const r = await fetch(API_URL + '/impressora.php?action=listar');
+    const body = await r.text();
+    const json = body ? JSON.parse(body) : null;
+    if (json && json.sucesso && json.dados.impressoras.length > 0) {
+      lista.innerHTML = '<option value="">— selecione a impressora —</option>';
+      json.dados.impressoras.forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = n;
+        opt.textContent = n;
+        lista.appendChild(opt);
+      });
+    } else {
+      lista.innerHTML = '<option value="">Nenhuma impressora encontrada</option>';
+    }
+  } catch {
+    lista.innerHTML = '<option value="">Erro ao detectar impressoras</option>';
+  }
+}
+
 async function salvarImpressora() {
+  const nome     = document.getElementById('impressoraNome')?.value   || '';
   const largura  = document.getElementById('impressoraLargura')?.value  || '80';
   const autoprint = document.getElementById('impressoraAutoprint')?.value || 'nao';
   const fonte    = document.getElementById('impressoraFonte')?.value    || '9';
 
   const configs = {
+    impressora_nome:      nome,
     impressora_largura:   largura,
     impressora_autoprint: autoprint,
     impressora_fonte:     fonte

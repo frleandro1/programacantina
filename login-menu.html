@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
@@ -241,11 +241,28 @@
     </style>
 </head>
 <body>
+<button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
+<script>
+(function(){
+  var btn = document.getElementById('btnVoltarGlobal');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = 'login-menu.html';
+  });
+})();
+</script>
     <div class="container">
         <div class="card">
             <!-- MENU INICIAL -->
             <div id="menuInicial">
-                <h1>🍽️ Programa Cantina</h1>
+                <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                  <img src="LOGO_F.png" alt="Logo Cantina" style="height: 50px; width: auto; object-fit: contain;">
+                  <span>Programa Cantina</span>
+                </h1>
                 <div class="subtitle">Escolha seu tipo de acesso</div>
 
                 <div class="menu-buttons">

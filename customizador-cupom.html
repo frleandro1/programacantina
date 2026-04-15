@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -181,12 +181,29 @@
   </style>
 </head>
 <body>
+<button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
+<script>
+(function(){
+  var btn = document.getElementById('btnVoltarGlobal');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = 'login-menu.html';
+  });
+})();
+</script>
 
 <div class="container">
   
   <!-- PAINEL DE CONTROLE -->
   <div class="painel">
-    <h1>🎫 Customizador de Cupom</h1>
+    <h1 style="display: flex; align-items: center; gap: 10px;">
+      <img src="LOGO_F.png" alt="Logo Cantina" style="height: 40px; width: auto; object-fit: contain;">
+      <span>Customizador de Cupom</span>
+    </h1>
     
     <div class="info-box">
       Customize aqui como seu cupom será exibido. As alterações aparecem em tempo real na pré-visualização ao lado.
@@ -196,7 +213,7 @@
     
     <div class="form-group">
       <label>Nome da Cantina/Empresa *</label>
-      <input type="text" id="nomeCantina" placeholder="Ex: PROGRAMA CANTINA" value="PROGRAMA CANTINA">
+      <input type="text" id="nomeCantina" placeholder="Ex: Cantina IBFC" value="Cantina IBFC">
     </div>
     
     <div class="form-group">
@@ -239,7 +256,7 @@
     
     <div class="form-group">
       <label>Mensagem Final (próxima linha)</label>
-      <input type="text" id="msg1" placeholder="Ex: Obrigado pela preferência!" value="Obrigado pela preferência!">
+      <input type="text" id="msg1" placeholder="Ex: DEUS ABENÇOE!" value="DEUS ABENÇOE!">
     </div>
     
     <div class="form-group">
@@ -271,6 +288,7 @@
     <div class="button-group">
       <button onclick="atualizarCupom()">🔄 ATUALIZAR CUPOM</button>
       <button class="secondary" onclick="resetarPadrao()">↻ PADRÃO</button>
+      <button style="background:#4CAF50" onclick="salvarCustomizacao()">💾 SALVAR NO SISTEMA</button>
     </div>
     
     <div class="section-title">📦 TEMPLATES PRONTOS</div>
@@ -304,14 +322,14 @@
 <script>
 // Dados padrão
 const padraoOriginal = {
-  nomeCantina: 'PROGRAMA CANTINA',
+  nomeCantina: 'Cantina IBFC',
   vendedor: '',
   caixa: '',
   rotuloCupom: 'Venda Nº',
   tituloProdutos: 'PRODUTOS',
   formatoQtd: '{qtd} x R$ {preco}',
   rotuloTotal: 'TOTAL',
-  msg1: 'Obrigado pela preferência!',
+  msg1: 'DEUS ABENÇOE!',
   msg2: '',
   msg3: '',
   sepPrincipal: '========================================',
@@ -321,21 +339,21 @@ const padraoOriginal = {
 // Templates prontos
 const templates = {
   simples: {
-    nomeCantina: 'PROGRAMA CANTINA',
+    nomeCantina: 'Cantina IBFC',
     vendedor: '',
     caixa: '',
     rotuloCupom: 'Venda Nº',
     tituloProdutos: 'PRODUTOS',
     formatoQtd: '{qtd} x {preco}',
     rotuloTotal: 'TOTAL',
-    msg1: 'Obrigado!',
+    msg1: 'DEUS ABENÇOE!',
     msg2: '',
     msg3: '',
     sepPrincipal: '====================',
     sepSecao: '--------------------'
   },
   completo: {
-    nomeCantina: '🍽️ CANTINA DO BAIRRO 🍽️',
+    nomeCantina: 'Cantina IBFC',
     vendedor: 'João Silva',
     caixa: 'Caixa 01',
     rotuloCupom: 'Cupom Nº',
@@ -503,9 +521,56 @@ function exportarJSON() {
   a.click();
 }
 
+async function salvarCustomizacao() {
+  try {
+    const dados = obterDados();
+    const payload = {};
+    Object.keys(dados).forEach(key => {
+      payload['cupom_' + key] = dados[key];
+    });
+
+    const requests = Object.entries(payload).map(([chave, valor]) => 
+      fetch(window.location.origin + '/Cantina/api/configuracoes.php?action=atualizar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ chave, valor })
+      })
+    );
+    
+    await Promise.all(requests);
+    alert('✓ Customizações salvas com sucesso! Atualize a tela de vendas para ver as mudanças.');
+  } catch (err) {
+    alert('✗ Erro ao salvar: ' + (err.message || 'desconhecido'));
+  }
+}
+
+async function carregarCustomizacoes() {
+  try {
+    const res = await fetch(window.location.origin + '/Cantina/api/configuracoes.php?action=obter');
+    const data = await res.json();
+    if (!data.sucesso || !data.dados) return;
+    
+    const customizacoes = {};
+    Object.keys(data.dados).forEach(chave => {
+      if (chave.startsWith('cupom_')) {
+        const key = chave.replace('cupom_', '');
+        customizacoes[key] = data.dados[chave];
+      }
+    });
+    
+    if (Object.keys(customizacoes).length > 0) {
+      definirDados(customizacoes);
+      atualizarCupom();
+    }
+  } catch (err) {
+    console.warn('Não foi possível carregar customizações salvas:', err);
+  }
+}
+
 // Inicializar
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   definirDados(padraoOriginal);
+  await carregarCustomizacoes();
   atualizarCupom();
   
   // Atualizar ao digitar

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -140,24 +140,30 @@ input[type="email"],
 input[type="number"],
 select,
 textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  color: var(--text);
-  font-size: 14px;
-  font-family: inherit;
-  box-sizing: border-box;
+  width: 100% !important;
+  padding: 12px !important;
+  border: 1px solid #999999 !important;
+  border-radius: 8px !important;
+  background: #f5f5f5 !important;
+  color: #000000 !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
   transition: border-color 0.3s;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  outline: none;
-  border-color: #ff7a45;
-  box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.2);
+  outline: none !important;
+  border-color: #ff7a45 !important;
+  box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.2) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #555555 !important;
+  opacity: 1 !important;
 }
 
 .form-row {
@@ -180,7 +186,7 @@ textarea:focus {
 
 .btn-primary {
   background: linear-gradient(135deg, #ff7a45 0%, #ff6a3d 100%);
-  color: white;
+  color: rgb(20, 18, 18);
 }
 
 .btn-primary:hover {
@@ -199,7 +205,7 @@ textarea:focus {
 
 .btn-danger {
   background: #dc3545;
-  color: white;
+  color: rgb(19, 15, 15);
 }
 
 .btn-danger:hover {
@@ -250,7 +256,7 @@ th {
   padding: 14px;
   text-align: left;
   font-weight: 600;
-  color: var(--text);
+  color: #ff7a45; 
   font-size: 13px;
   text-transform: uppercase;
 }
@@ -258,7 +264,7 @@ th {
 td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
-  color: var(--muted);
+  color: #ff7a45;
 }
 
 tr:hover {
@@ -306,7 +312,7 @@ tr:hover {
 
 .stat-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: rgb(14, 11, 11);
   padding: 20px;
   border-radius: 12px;
   text-align: center;
@@ -371,6 +377,106 @@ tr:hover {
   margin: 0 0 15px 0;
 }
 
+.produto-selecao-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  padding: 16px 18px;
+  background: rgba(255, 122, 69, 0.08);
+  border: 1px solid rgba(255, 122, 69, 0.2);
+  border-radius: 10px;
+}
+
+.produto-selecao-barra p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.produto-checkbox-cell {
+  text-align: center;
+}
+
+.produto-checkbox-cell input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.produto-upload-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.produto-upload-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 122, 69, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff7a45;
+  font-size: 26px;
+  border: 1px solid rgba(255, 122, 69, 0.15);
+}
+
+.produto-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.produto-upload-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.produto-ordem-cell {
+  min-width: 120px;
+}
+
+.ordem-rapida-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ordem-rapida-badge {
+  min-width: 34px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 122, 69, 0.14);
+  color: #ff7a45;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ordem-rapida-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.ordem-rapida-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 input[type=\"color\"] {
   width: 50px;
   height: 50px;
@@ -412,8 +518,25 @@ input[type=\"color\"] {
 </style>
 </head>
 <body>
+<button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
+<script>
+(function(){
+  var btn = document.getElementById('btnVoltarGlobal');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = 'login-menu.html';
+  });
+})();
+</script>
 <div class="topbar">
-  <div class="brand">🍽️ Cantina - Painel do Administrador</div>
+  <div class="brand">
+    <img src="LOGO_F.png" alt="Logo Cantina" class="brand-logo">
+    <span>Programa Cantina</span>
+  </div>
   <nav>
     <a href="vendas.html">← Voltar</a>
     <a href="#" onclick="logout()">Sair</a>
@@ -443,7 +566,7 @@ input[type=\"color\"] {
       
       <div id="usuarioMessage" class="message"></div>
 
-      <h2>Novo Usuário</h2>
+      <h2 id="usuarioFormTitulo">Novo Usuário</h2>
       <form id="usuarioForm">
         <div class="form-row">
           <div class="form-group">
@@ -451,7 +574,7 @@ input[type=\"color\"] {
             <input type="text" id="usuarioLogin" required placeholder="Ex: joao.silva">
           </div>
           <div class="form-group">
-            <label for="usuarioSenha">Senha *</label>
+            <label for="usuarioSenha" id="usuarioSenhaLabel">Senha *</label>
             <input type="password" id="usuarioSenha" required placeholder="Mínimo 6 caracteres">
           </div>
         </div>
@@ -466,7 +589,8 @@ input[type=\"color\"] {
             <select id="usuarioPapel">
               <option value="atendente">Atendente</option>
               <option value="producao">Produção</option>
-              <option value="gestor">Gestor/Administrador</option>
+              <option value="gestor">Gestor</option>
+              <option value="administrador">Administrador</option>
             </select>
           </div>
         </div>
@@ -476,7 +600,10 @@ input[type=\"color\"] {
           <input type="email" id="usuarioEmail" placeholder="Ex: joao@cantina.com">
         </div>
 
-        <button type="submit" class="btn btn-primary">✓ Criar Usuário</button>
+        <div class="action-buttons">
+          <button type="submit" class="btn btn-primary" id="usuarioSubmitBtn">✓ Criar Usuário</button>
+          <button type="button" class="btn btn-secondary" id="usuarioCancelBtn" style="display: none;" onclick="cancelarEdicaoUsuario()">Cancelar Edição</button>
+        </div>
       </form>
 
       <div class="table-container">
@@ -504,7 +631,7 @@ input[type=\"color\"] {
       
       <div id="produtoMessage" class="message"></div>
 
-      <h2>Novo Produto</h2>
+      <h2 id="produtoFormTitulo">Novo Produto</h2>
       <form id="produtoForm">
         <div class="form-row">
           <div class="form-group">
@@ -515,6 +642,7 @@ input[type=\"color\"] {
             <label for="produtoCategoria">Categoria *</label>
             <select id="produtoCategoria" required>
               <option value="">-- Selecione --</option>
+              <option value="Todos">Todos</option>
               <option value="Salgado">Salgado</option>
               <option value="Doce">Doce</option>
               <option value="Bebida">Bebida</option>
@@ -536,11 +664,38 @@ input[type=\"color\"] {
 
         <div class="form-group">
           <label for="produtoDescricao">Descrição</label>
-          <textarea id="produtoDescricao" style="padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; min-height: 80px; font-family: inherit; box-sizing: border-box;" placeholder="Ex: Coxinha de frango cremosa"></textarea>
+          <textarea id="produtoDescricao" style="padding: 12px; border: 1px solid #999999; border-radius: 8px; width: 100%; min-height: 80px; font-family: inherit; box-sizing: border-box; background: #f5f5f5; color: #000000;" placeholder="Ex: Coxinha de frango cremosa"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary">✓ Adicionar Produto</button>
+        <div class="form-group">
+          <label for="produtoImagem">Imagem do Produto</label>
+          <div class="produto-upload-inline">
+            <div id="produtoImagemPreview" class="produto-upload-preview">📸</div>
+            <div>
+              <input type="file" id="produtoImagem" accept="image/*" style="display: none;">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('produtoImagem').click()">Selecionar imagem</button>
+              <button type="button" class="btn btn-secondary" onclick="limparImagemProdutoForm()">Limpar imagem</button>
+              <div id="produtoImagemInfo" class="produto-upload-meta">Nenhuma imagem selecionada.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button type="submit" class="btn btn-primary" id="produtoSubmitBtn">✓ Adicionar Produto</button>
+          <button type="button" class="btn btn-secondary" id="produtoCancelBtn" style="display: none;" onclick="cancelarEdicaoProduto()">Cancelar Edição</button>
+        </div>
       </form>
+
+      <div class="produto-selecao-barra">
+        <div>
+          <h2 style="margin: 0 0 6px 0; border: 0; padding: 0;">Produtos rápidos da venda</h2>
+          <p id="produtosVendaResumo">Nenhum produto selecionado para destaque na página de vendas.</p>
+        </div>
+        <div class="action-buttons">
+          <button type="button" class="btn btn-secondary" onclick="limparSelecaoProdutosVenda()">Limpar seleção</button>
+          <button type="button" class="btn btn-primary" onclick="salvarSelecaoProdutosVenda()">Salvar seleção</button>
+        </div>
+      </div>
 
       <div class="table-container">
         <h2 style="margin-top: 30px;">Produtos Cadastrados</h2>
@@ -552,11 +707,13 @@ input[type=\"color\"] {
               <th>Preço</th>
               <th>Estoque</th>
               <th>Status</th>
+              <th>Rápido</th>
+              <th>Ordem</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody id="produtosTableBody">
-            <tr><td colspan="6" class="loading">Carregando...</td></tr>
+            <tr><td colspan="8" class="loading">Carregando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -670,6 +827,21 @@ input[type=\"color\"] {
           <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Configurações de impressão para cupom fiscal</p>
 
           <div class="form-group">
+            <label for="impressoraNome">Nome da Impressora</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="impressoraNome" placeholder="Ex: POS-58(copy of 3)"
+                style="flex:1;padding:10px;border:1px solid #999999;border-radius:8px;background:#f5f5f5;color:#000000;font-size:14px;box-sizing:border-box;">
+              <button type="button" onclick="detectarImpressoras()"
+                style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;cursor:pointer;white-space:nowrap;">🔍 Detectar</button>
+            </div>
+            <select id="impressoraLista" style="display:none;width:100%;margin-top:6px;padding:10px;border:1px solid #999999;border-radius:8px;background:#f5f5f5;color:#000000;font-size:14px;"
+              onchange="if(this.value){document.getElementById('impressoraNome').value=this.value;}">
+              <option value="">— selecione a impressora —</option>
+            </select>
+            <small style="color:var(--muted);">Deixe vazio para usar a impressora padrão do Windows</small>
+          </div>
+
+          <div class="form-group">
             <label for="impressoraLargura">Largura do Papel</label>
             <select id="impressoraLargura" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;">
               <option value="58">58mm — Compacta (32 colunas)</option>
@@ -701,6 +873,32 @@ input[type=\"color\"] {
 
 <script>
 const API_URL = window.location.origin + '/Cantina/api';
+const usuarioForm = document.getElementById('usuarioForm');
+const usuarioFormTitulo = document.getElementById('usuarioFormTitulo');
+const usuarioLoginInput = document.getElementById('usuarioLogin');
+const usuarioSenhaInput = document.getElementById('usuarioSenha');
+const usuarioSenhaLabel = document.getElementById('usuarioSenhaLabel');
+const usuarioNomeInput = document.getElementById('usuarioNome');
+const usuarioPapelInput = document.getElementById('usuarioPapel');
+const usuarioEmailInput = document.getElementById('usuarioEmail');
+const usuarioSubmitBtn = document.getElementById('usuarioSubmitBtn');
+const usuarioCancelBtn = document.getElementById('usuarioCancelBtn');
+const produtoFormTitulo = document.getElementById('produtoFormTitulo');
+const produtoSubmitBtn = document.getElementById('produtoSubmitBtn');
+const produtoCancelBtn = document.getElementById('produtoCancelBtn');
+
+let usuarioEditandoId = null;
+let usuariosCache = [];
+let produtosSelecionadosVenda = [];
+let produtosCache = [];
+let produtoImagemPreparada = null;
+let produtoEditandoId = null;
+
+const PRODUTO_IMAGEM_LARGURA = 960;
+const PRODUTO_IMAGEM_ALTURA = 720;
+const PRODUTO_IMAGEM_QUALIDADE = 0.72;
+const PRODUTO_IMAGEM_FORMATO_PREFERIDO = 'image/webp';
+const PRODUTO_IMAGEM_FORMATO_FALLBACK = 'image/jpeg';
 
 // Menu lateral
 document.querySelectorAll('.menu-btn').forEach(btn => {
@@ -713,36 +911,41 @@ document.querySelectorAll('.menu-btn').forEach(btn => {
     document.getElementById(section).classList.add('active');
     
     if (section === 'usuarios') carregarUsuarios();
-    if (section === 'produtos') carregarProdutos();
+    if (section === 'produtos') {
+      limparFormularioProduto();
+      carregarProdutos();
+    }
     if (section === 'configuracoes') carregarConfiguracoes();
   });
 });
 
 // USUÁRIOS
-document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
+usuarioForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  const login = document.getElementById('usuarioLogin').value.trim();
-  const senha = document.getElementById('usuarioSenha').value;
-  const nome = document.getElementById('usuarioNome').value.trim();
-  const papel = document.getElementById('usuarioPapel').value;
-  const email = document.getElementById('usuarioEmail').value.trim();
+  const login = usuarioLoginInput.value.trim();
+  const senha = usuarioSenhaInput.value;
+  const nome = usuarioNomeInput.value.trim();
+  const papel = usuarioPapelInput.value;
+  const email = usuarioEmailInput.value.trim();
+  const emEdicao = usuarioEditandoId !== null;
 
-  if (!login || !senha || !nome) {
+  if (!login || !nome || (!emEdicao && !senha)) {
     mostrarMensagem('usuarioMessage', 'Preencha todos os campos obrigatórios', 'error');
     return;
   }
 
-  if (senha.length < 6) {
+  if (senha && senha.length < 6) {
     mostrarMensagem('usuarioMessage', 'A senha deve ter no mínimo 6 caracteres', 'error');
     return;
   }
 
   try {
-    const response = await fetch(API_URL + '/auth.php?action=criar_usuario', {
+    const response = await fetch(API_URL + `/auth.php?action=${emEdicao ? 'editar_usuario' : 'criar_usuario'}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        id: usuarioEditandoId,
         login,
         senha,
         nome,
@@ -754,16 +957,57 @@ document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
     const data = await response.json();
     
     if (data.sucesso) {
-      mostrarMensagem('usuarioMessage', '✓ Usuário criado com sucesso!', 'success');
-      document.getElementById('usuarioForm').reset();
-      carregarUsuarios();
+      mostrarMensagem('usuarioMessage', emEdicao ? '✓ Usuário atualizado com sucesso!' : '✓ Usuário criado com sucesso!', 'success');
+      limparFormularioUsuario();
+      await carregarUsuarios();
     } else {
-      mostrarMensagem('usuarioMessage', data.mensagem || 'Erro ao criar usuário', 'error');
+      mostrarMensagem('usuarioMessage', data.mensagem || `Erro ao ${emEdicao ? 'atualizar' : 'criar'} usuário`, 'error');
     }
   } catch (error) {
-    mostrarMensagem('usuarioMessage', 'Erro ao criar usuário: ' + error.message, 'error');
+    mostrarMensagem('usuarioMessage', `Erro ao ${emEdicao ? 'atualizar' : 'criar'} usuário: ` + error.message, 'error');
   }
 });
+
+function limparFormularioUsuario() {
+  usuarioEditandoId = null;
+  usuarioForm.reset();
+  usuarioFormTitulo.textContent = 'Novo Usuário';
+  usuarioSenhaLabel.textContent = 'Senha *';
+  usuarioSenhaInput.required = true;
+  usuarioSenhaInput.placeholder = 'Mínimo 6 caracteres';
+  usuarioSubmitBtn.textContent = '✓ Criar Usuário';
+  usuarioCancelBtn.style.display = 'none';
+}
+
+function editarUsuario(id) {
+  const usuario = usuariosCache.find((item) => item.id === id);
+
+  if (!usuario) {
+    mostrarMensagem('usuarioMessage', 'Usuário não encontrado para edição', 'error');
+    return;
+  }
+
+  const tipoUsuario = usuario.tipo === 'admin' ? 'administrador' : (usuario.tipo || 'atendente');
+
+  usuarioEditandoId = id;
+  usuarioFormTitulo.textContent = 'Editar Funcionário';
+  usuarioLoginInput.value = usuario.username || '';
+  usuarioSenhaInput.value = '';
+  usuarioSenhaInput.required = false;
+  usuarioSenhaInput.placeholder = 'Deixe em branco para manter a senha atual';
+  usuarioSenhaLabel.textContent = 'Nova Senha';
+  usuarioNomeInput.value = usuario.nome || '';
+  usuarioPapelInput.value = tipoUsuario;
+  usuarioEmailInput.value = usuario.email || '';
+  usuarioSubmitBtn.textContent = '✓ Salvar Alterações';
+  usuarioCancelBtn.style.display = 'inline-flex';
+  usuarioForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelarEdicaoUsuario() {
+  limparFormularioUsuario();
+  mostrarMensagem('usuarioMessage', 'Edição cancelada', 'success');
+}
 
 async function carregarUsuarios() {
   try {
@@ -772,24 +1016,27 @@ async function carregarUsuarios() {
     
     const tbody = document.getElementById('usuariosTableBody');
     if (result.sucesso && result.usuarios && result.usuarios.length > 0) {
+      usuariosCache = result.usuarios;
       tbody.innerHTML = result.usuarios.map(u => `
         <tr>
           <td>${u.username}</td>
-          <td>-</td>
+          <td>${u.nome || '-'}</td>
           <td>${u.email || '-'}</td>
           <td><span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${u.tipo}</span></td>
           <td>
             <div class="action-buttons">
-              <button class="btn-edit" onclick="alert('Edição em breve');">Editar</button>
+              <button class="btn-edit" onclick="editarUsuario(${u.id})">Editar</button>
               <button class="btn-delete" onclick="deletarUsuario(${u.id})">Deletar</button>
             </div>
           </td>
         </tr>
       `).join('');
     } else {
+      usuariosCache = [];
       tbody.innerHTML = '<tr><td colspan="5">Nenhum usuário encontrado</td></tr>';
     }
   } catch (error) {
+    usuariosCache = [];
     document.getElementById('usuariosTableBody').innerHTML = '<tr><td colspan="5">Erro ao carregar usuários</td></tr>';
   }
 }
@@ -806,6 +1053,9 @@ async function deletarUsuario(id) {
     
     const result = await response.json();
     if (result.sucesso) {
+      if (usuarioEditandoId === id) {
+        limparFormularioUsuario();
+      }
       carregarUsuarios();
       mostrarMensagem('usuarioMessage', '✓ Usuário deletado com sucesso!', 'success');
     } else {
@@ -825,48 +1075,288 @@ document.getElementById('produtoForm').addEventListener('submit', async (e) => {
   const preco = parseFloat(document.getElementById('produtoPreco').value);
   const estoque = parseInt(document.getElementById('produtoEstoque').value);
   const descricao = document.getElementById('produtoDescricao').value.trim();
+  const imagemArquivo = produtoImagemPreparada;
+  const emEdicao = Number.isFinite(Number(produtoEditandoId)) && Number(produtoEditandoId) > 0;
 
-  if (!nome || !categoria || !preco || estoque === '') {
-    mostrarMensagem('produtoMessage', 'Preencha todos os campos obrigatórios', 'error');
+  if (!nome || !categoria || !Number.isFinite(preco) || preco <= 0 || !Number.isFinite(estoque) || estoque < 0) {
+    mostrarMensagem('produtoMessage', 'Preencha os campos obrigatórios com valores válidos (preço > 0 e estoque >= 0)', 'error');
     return;
   }
 
   try {
-    const response = await fetch(API_URL + '/produtos.php?action=criar', {
-      method: 'POST',
+    const payload = { 
+      nome,
+      categoria,
+      preco,
+      estoque,
+      descricao,
+      status: 'ativo'
+    };
+
+    if (emEdicao) {
+      payload.id = Number(produtoEditandoId);
+    }
+
+    const response = await fetch(API_URL + `/produtos.php?action=${emEdicao ? 'atualizar' : 'criar'}`, {
+      method: emEdicao ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        nome, 
-        categoria, 
-        preco, 
-        estoque, 
-        descricao,
-        status: 'ativo'
-      })
+      body: JSON.stringify(payload)
     });
 
     const result = await response.json();
     
     if (result.sucesso || result.success) {
-      mostrarMensagem('produtoMessage', '✓ Produto adicionado com sucesso!', 'success');
-      document.getElementById('produtoForm').reset();
+      let mensagemSucesso = emEdicao ? '✓ Produto atualizado com sucesso!' : '✓ Produto adicionado com sucesso!';
+
+      const produtoAlvoImagem = emEdicao ? produtoEditandoId : result.id;
+
+      if (imagemArquivo && produtoAlvoImagem) {
+        const uploadImagem = await enviarImagemProduto(produtoAlvoImagem, imagemArquivo);
+        if (!uploadImagem.sucesso) {
+          mostrarMensagem('produtoMessage', (emEdicao ? 'Produto atualizado, mas a imagem não foi enviada: ' : 'Produto criado, mas a imagem não foi enviada: ') + (uploadImagem.mensagem || 'erro desconhecido'), 'error');
+          limparFormularioProduto();
+          carregarProdutos();
+          return;
+        }
+
+        mensagemSucesso = emEdicao
+          ? '✓ Produto e imagem atualizados com sucesso!'
+          : '✓ Produto e imagem adicionados com sucesso!';
+      }
+
+      mostrarMensagem('produtoMessage', mensagemSucesso, 'success');
+      limparFormularioProduto();
       carregarProdutos();
     } else {
-      mostrarMensagem('produtoMessage', result.mensagem || result.error || 'Erro ao adicionar produto', 'error');
+      mostrarMensagem('produtoMessage', result.mensagem || result.error || `Erro ao ${emEdicao ? 'atualizar' : 'adicionar'} produto`, 'error');
     }
   } catch (error) {
-    mostrarMensagem('produtoMessage', 'Erro ao adicionar produto: ' + error.message, 'error');
+    mostrarMensagem('produtoMessage', `Erro ao ${emEdicao ? 'atualizar' : 'adicionar'} produto: ` + error.message, 'error');
   }
 });
 
+document.getElementById('produtoImagem').addEventListener('change', (e) => {
+  prepararImagemProdutoForm(e.target.files[0] || null);
+});
+
+function limparImagemProdutoForm() {
+  const input = document.getElementById('produtoImagem');
+  const preview = document.getElementById('produtoImagemPreview');
+  const info = document.getElementById('produtoImagemInfo');
+
+  produtoImagemPreparada = null;
+  if (input) input.value = '';
+  if (preview) preview.innerHTML = '📸';
+  if (info) info.textContent = 'Nenhuma imagem selecionada.';
+}
+
+function limparFormularioProduto() {
+  produtoEditandoId = null;
+  document.getElementById('produtoForm').reset();
+  limparImagemProdutoForm();
+  if (produtoFormTitulo) produtoFormTitulo.textContent = 'Novo Produto';
+  if (produtoSubmitBtn) produtoSubmitBtn.textContent = '✓ Adicionar Produto';
+  if (produtoCancelBtn) produtoCancelBtn.style.display = 'none';
+}
+
+function iniciarEdicaoProduto(id) {
+  const produto = produtosCache.find((item) => Number(item.id) === Number(id));
+  if (!produto) {
+    mostrarMensagem('produtoMessage', 'Produto não encontrado para edição', 'error');
+    return;
+  }
+
+  produtoEditandoId = Number(produto.id);
+  document.getElementById('produtoNome').value = produto.nome || '';
+  document.getElementById('produtoCategoria').value = produto.categoria || 'Outro';
+  document.getElementById('produtoPreco').value = Number(produto.preco || 0);
+  document.getElementById('produtoEstoque').value = Number(produto.estoque || 0);
+  document.getElementById('produtoDescricao').value = produto.descricao || '';
+
+  if (produto.imagem_url) {
+    const preview = document.getElementById('produtoImagemPreview');
+    const info = document.getElementById('produtoImagemInfo');
+    preview.innerHTML = `<img src="${produto.imagem_url}?t=${Date.now()}" alt="Imagem atual do produto">`;
+    info.textContent = 'Imagem atual carregada. Selecione outra para substituir.';
+  } else {
+    limparImagemProdutoForm();
+  }
+
+  if (produtoFormTitulo) produtoFormTitulo.textContent = 'Editar Produto';
+  if (produtoSubmitBtn) produtoSubmitBtn.textContent = '✓ Salvar Alterações';
+  if (produtoCancelBtn) produtoCancelBtn.style.display = 'inline-flex';
+
+  document.getElementById('produtoForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelarEdicaoProduto() {
+  limparFormularioProduto();
+  mostrarMensagem('produtoMessage', 'Edição de produto cancelada', 'success');
+}
+
+async function prepararImagemProdutoForm(arquivo) {
+  const preview = document.getElementById('produtoImagemPreview');
+  const info = document.getElementById('produtoImagemInfo');
+
+  if (!arquivo) {
+    limparImagemProdutoForm();
+    return;
+  }
+
+  info.textContent = 'Preparando imagem...';
+
+  try {
+    produtoImagemPreparada = await redimensionarImagemProduto(arquivo);
+    const previewUrl = await blobParaDataUrl(produtoImagemPreparada);
+    preview.innerHTML = `<img src="${previewUrl}" alt="Preview do produto">`;
+    const formatoSaida = produtoImagemPreparada.type === 'image/webp' ? 'WebP' : 'JPG';
+    info.textContent = `${produtoImagemPreparada.name} (${Math.round(produtoImagemPreparada.size / 1024)} KB) - ${formatoSaida} padronizado em ${PRODUTO_IMAGEM_LARGURA}x${PRODUTO_IMAGEM_ALTURA}`;
+  } catch (error) {
+    produtoImagemPreparada = null;
+    preview.innerHTML = '📸';
+    info.textContent = 'Falha ao preparar imagem.';
+    mostrarMensagem('produtoMessage', 'Erro ao preparar imagem: ' + error.message, 'error');
+  }
+}
+
+function blobParaDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Não foi possível gerar a pré-visualização da imagem'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function carregarImagemOriginal(arquivo) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(arquivo);
+    const imagem = new Image();
+    imagem.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(imagem);
+    };
+    imagem.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Arquivo de imagem inválido'));
+    };
+    imagem.src = url;
+  });
+}
+
+async function redimensionarImagemProduto(arquivo) {
+  const imagem = await carregarImagemOriginal(arquivo);
+  const canvas = document.createElement('canvas');
+  canvas.width = PRODUTO_IMAGEM_LARGURA;
+  canvas.height = PRODUTO_IMAGEM_ALTURA;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Canvas indisponível para tratamento da imagem');
+  }
+
+  const escala = Math.max(
+    PRODUTO_IMAGEM_LARGURA / imagem.width,
+    PRODUTO_IMAGEM_ALTURA / imagem.height
+  );
+
+  const larguraDesenhada = imagem.width * escala;
+  const alturaDesenhada = imagem.height * escala;
+  const offsetX = (PRODUTO_IMAGEM_LARGURA - larguraDesenhada) / 2;
+  const offsetY = (PRODUTO_IMAGEM_ALTURA - alturaDesenhada) / 2;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(imagem, offsetX, offsetY, larguraDesenhada, alturaDesenhada);
+
+  const formatoSaida = obterFormatoSaidaImagem(canvas);
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((arquivoBlob) => {
+      if (!arquivoBlob) {
+        reject(new Error('Não foi possível gerar a imagem padronizada'));
+        return;
+      }
+      resolve(arquivoBlob);
+    }, formatoSaida, PRODUTO_IMAGEM_QUALIDADE);
+  });
+
+  const nomeBase = (arquivo.name || 'produto')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'produto';
+
+  const extensaoSaida = formatoSaida === 'image/webp' ? 'webp' : 'jpg';
+
+  return new File([blob], `${nomeBase}-padrao.${extensaoSaida}`, {
+    type: formatoSaida,
+    lastModified: Date.now()
+  });
+}
+
+function obterFormatoSaidaImagem(canvas) {
+  try {
+    const suporteWebp = canvas.toDataURL(PRODUTO_IMAGEM_FORMATO_PREFERIDO).startsWith('data:image/webp');
+    return suporteWebp ? PRODUTO_IMAGEM_FORMATO_PREFERIDO : PRODUTO_IMAGEM_FORMATO_FALLBACK;
+  } catch (error) {
+    return PRODUTO_IMAGEM_FORMATO_FALLBACK;
+  }
+}
+
+async function enviarImagemProduto(produtoId, arquivo) {
+  const formData = new FormData();
+  formData.append('imagem', arquivo);
+  formData.append('produto_id', produtoId);
+
+  try {
+    const response = await fetch('/Cantina/api/imagens.php?action=upload', {
+      method: 'POST',
+      body: formData,
+      cache: 'no-store'
+    });
+
+    return await response.json();
+  } catch (error) {
+    return {
+      sucesso: false,
+      mensagem: error.message
+    };
+  }
+}
+
 async function carregarProdutos() {
   try {
+    await carregarSelecaoProdutosVenda();
     const response = await fetch(API_URL + '/produtos.php?action=listar');
     const result = await response.json();
-    
-    const tbody = document.getElementById('produtosTableBody');
+
     if (result.sucesso && result.dados) {
-      tbody.innerHTML = result.dados.map(p => `
+      produtosCache = result.dados;
+      const idsValidos = new Set(produtosCache.map((produto) => Number(produto.id)));
+      produtosSelecionadosVenda = produtosSelecionadosVenda.filter((id) => idsValidos.has(id));
+      renderTabelaProdutos();
+    } else {
+      produtosCache = [];
+      renderTabelaProdutos();
+    }
+  } catch (error) {
+    produtosCache = [];
+    document.getElementById('produtosTableBody').innerHTML = '<tr><td colspan="8">Erro ao carregar produtos</td></tr>';
+    atualizarResumoSelecaoProdutosVenda();
+  }
+}
+
+function renderTabelaProdutos() {
+  const tbody = document.getElementById('produtosTableBody');
+
+  if (!Array.isArray(produtosCache) || produtosCache.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8">Nenhum produto encontrado</td></tr>';
+    atualizarResumoSelecaoProdutosVenda();
+    return;
+  }
+
+  tbody.innerHTML = produtosCache.map(p => `
         <tr>
           <td style="display: flex; align-items: center; gap: 10px;">
             ${p.imagem_url ? `<img src="${p.imagem_url}?t=${Date.now()}" alt="${p.nome}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">` : '<div style="width: 40px; height: 40px; border-radius: 6px; background: rgba(255, 122, 69, 0.2); display: flex; align-items: center; justify-content: center; font-size: 20px;">📸</div>'}
@@ -876,19 +1366,140 @@ async function carregarProdutos() {
           <td>R$ ${parseFloat(p.preco).toFixed(2)}</td>
           <td>${p.estoque}</td>
           <td><span style="background: ${p.status === 'ativo' ? '#28a745' : '#dc3545'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${p.status}</span></td>
+          <td class="produto-checkbox-cell">
+            <input type="checkbox" class="produto-venda-checkbox" value="${p.id}" ${produtoEstaSelecionadoVenda(p.id) ? 'checked' : ''} onchange="alternarProdutoVendaRapida(${p.id}, this.checked)">
+          </td>
+          <td class="produto-ordem-cell">
+            <div class="ordem-rapida-controls">
+              <span class="ordem-rapida-badge">${obterRotuloPosicaoProdutoVenda(p.id)}</span>
+              <button type="button" class="ordem-rapida-btn" onclick="moverProdutoVendaRapida(${p.id}, -1)" ${podeMoverProdutoVenda(p.id, -1) ? '' : 'disabled'}>↑</button>
+              <button type="button" class="ordem-rapida-btn" onclick="moverProdutoVendaRapida(${p.id}, 1)" ${podeMoverProdutoVenda(p.id, 1) ? '' : 'disabled'}>↓</button>
+            </div>
+          </td>
           <td>
             <div class="action-buttons" style="flex-direction: column; gap: 4px;">
-              <button class="btn-edit" onclick="editarImagemProduto(${p.id}, '${p.nome}')">🖼️ Imagem</button>
+              <button class="btn-edit" onclick="iniciarEdicaoProduto(${p.id})">✏️ Editar</button>
+              <button class="btn-edit" data-nome="${String(p.nome).replace(/"/g, '&quot;')}" onclick="editarImagemProduto(${p.id}, this.dataset.nome)">🖼️ Imagem</button>
               <button class="btn-delete" onclick="deletarProduto(${p.id})">🗑️ Deletar</button>
             </div>
           </td>
         </tr>
       `).join('');
-    } else {
-      tbody.innerHTML = '<tr><td colspan="7">Nenhum produto encontrado</td></tr>';
+
+  atualizarResumoSelecaoProdutosVenda();
+}
+
+async function carregarSelecaoProdutosVenda() {
+  produtosSelecionadosVenda = [];
+
+  try {
+    const response = await fetch(API_URL + '/configuracoes.php?action=obter-uma&chave=produtos_fixos_venda', { cache: 'no-store' });
+    const result = await response.json();
+
+    if (!result.sucesso || !result.dados || !result.dados.valor) {
+      return;
+    }
+
+    const ids = JSON.parse(result.dados.valor);
+    if (Array.isArray(ids)) {
+      produtosSelecionadosVenda = ids
+        .map((id) => parseInt(id, 10))
+        .filter((numero) => Number.isFinite(numero) && numero > 0);
     }
   } catch (error) {
-    document.getElementById('produtosTableBody').innerHTML = '<tr><td colspan="7">Erro ao carregar produtos</td></tr>';
+    produtosSelecionadosVenda = [];
+  }
+}
+
+function produtoEstaSelecionadoVenda(id) {
+  return produtosSelecionadosVenda.includes(Number(id));
+}
+
+function obterIndiceProdutoVenda(id) {
+  return produtosSelecionadosVenda.indexOf(Number(id));
+}
+
+function obterRotuloPosicaoProdutoVenda(id) {
+  const indice = obterIndiceProdutoVenda(id);
+  return indice === -1 ? '--' : String(indice + 1).padStart(2, '0');
+}
+
+function podeMoverProdutoVenda(id, direcao) {
+  const indice = obterIndiceProdutoVenda(id);
+  if (indice === -1) return false;
+
+  const novoIndice = indice + direcao;
+  return novoIndice >= 0 && novoIndice < produtosSelecionadosVenda.length;
+}
+
+function alternarProdutoVendaRapida(id, selecionado) {
+  const numero = Number(id);
+  const indice = obterIndiceProdutoVenda(numero);
+
+  if (selecionado && indice === -1) {
+    produtosSelecionadosVenda.push(numero);
+  }
+
+  if (!selecionado && indice !== -1) {
+    produtosSelecionadosVenda.splice(indice, 1);
+  }
+
+  renderTabelaProdutos();
+}
+
+function moverProdutoVendaRapida(id, direcao) {
+  const indice = obterIndiceProdutoVenda(id);
+  if (indice === -1) return;
+
+  const novoIndice = indice + direcao;
+  if (novoIndice < 0 || novoIndice >= produtosSelecionadosVenda.length) {
+    return;
+  }
+
+  const [produtoId] = produtosSelecionadosVenda.splice(indice, 1);
+  produtosSelecionadosVenda.splice(novoIndice, 0, produtoId);
+  renderTabelaProdutos();
+}
+
+function atualizarResumoSelecaoProdutosVenda() {
+  const resumo = document.getElementById('produtosVendaResumo');
+  if (!resumo) return;
+
+  const total = produtosSelecionadosVenda.length;
+  resumo.textContent = total === 0
+    ? 'Nenhum produto selecionado para destaque na página de vendas.'
+    : `${total} produto(s) aparecerão em destaque acima das abas na tela de vendas, na ordem definida pelas setas.`;
+}
+
+function limparSelecaoProdutosVenda() {
+  produtosSelecionadosVenda = [];
+  renderTabelaProdutos();
+}
+
+async function salvarSelecaoProdutosVenda() {
+  const ids = [...produtosSelecionadosVenda];
+
+  try {
+    const response = await fetch(API_URL + '/configuracoes.php?action=atualizar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chave: 'produtos_fixos_venda',
+        valor: JSON.stringify(ids)
+      })
+    });
+
+    const result = await response.json();
+    if (result.sucesso) {
+      produtosSelecionadosVenda = [...ids];
+      atualizarResumoSelecaoProdutosVenda();
+      renderTabelaProdutos();
+      mostrarMensagem('produtoMessage', '✓ Seleção de produtos rápidos salva com sucesso!', 'success');
+    } else {
+      mostrarMensagem('produtoMessage', result.mensagem || 'Erro ao salvar seleção dos produtos rápidos', 'error');
+    }
+  } catch (error) {
+    mostrarMensagem('produtoMessage', 'Erro ao salvar seleção dos produtos rápidos', 'error');
   }
 }
 
@@ -921,21 +1532,12 @@ async function editarImagemProduto(produtoId, nomeProduto) {
     const file = e.target.files[0];
     if (!file) return;
     
-    const formData = new FormData();
-    formData.append('imagem', file);
-    formData.append('produto_id', produtoId);
-    
     try {
-      const response = await fetch('/Cantina/api/imagens.php?action=upload', {
-        method: 'POST',
-        body: formData,
-        cache: 'no-store'
-      });
-      
-      const result = await response.json();
+      const imagemTratada = await redimensionarImagemProduto(file);
+      const result = await enviarImagemProduto(produtoId, imagemTratada);
       
       if (result.sucesso) {
-        mostrarMensagem('produtoMessage', `✓ Imagem de "${nomeProduto}" enviada com sucesso!`, 'success');
+        mostrarMensagem('produtoMessage', `✓ Imagem de "${nomeProduto}" enviada com sucesso e padronizada automaticamente!`, 'success');
         carregarProdutos();
       } else {
         mostrarMensagem('produtoMessage', result.mensagem || 'Erro ao fazer upload', 'error');

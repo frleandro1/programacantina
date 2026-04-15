@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
@@ -131,8 +131,25 @@
   </style>
 </head>
 <body>
+<button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
+<script>
+(function(){
+  var btn = document.getElementById('btnVoltarGlobal');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = 'login-menu.html';
+  });
+})();
+</script>
   <div class="login-card">
-    <h1>🍽️ Programa Cantina</h1>
+    <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+      <img src="LOGO_F.png" alt="Logo Cantina" style="height: 50px; width: auto; object-fit: contain;">
+      <span>Programa Cantina</span>
+    </h1>
     
     <!-- FORMULÁRIO DE LOGIN -->
     <div class="login-form" id="loginForm">
@@ -172,7 +189,7 @@
       'usuario': 'Usuário'
     };
 
-    const roleClass = {
+    const roleClassMap = {
       'gestor': 'admin',
       'admin': 'admin',
       'administrador': 'admin',
@@ -200,7 +217,7 @@
           const userType = data.usuario?.tipo || 'usuario';
           const userName = data.usuario?.nome || username;
           const roleLabel = roleLabels[userType.toLowerCase()] || 'Usuário';
-          const roleClass = roleClass[userType.toLowerCase()] || 'usuario';
+          const badgeClass = roleClassMap[userType.toLowerCase()] || 'usuario';
           
           // Salvar dados
           localStorage.setItem('usuario', JSON.stringify(data.usuario));
@@ -213,7 +230,7 @@
           document.getElementById('successScreen').classList.add('show');
           document.getElementById('welcomeMsg').textContent = `Bem-vindo, ${userName}!`;
           document.getElementById('roleBadge').textContent = `👤 ${roleLabel}`;
-          document.getElementById('roleBadge').className = `role-badge ${roleClass}`;
+          document.getElementById('roleBadge').className = `role-badge ${badgeClass}`;
           
           // Redirecionar após 2 segundos
           setTimeout(() => {
@@ -228,7 +245,7 @@
           errorMsg.style.display = 'block';
         }
       } catch (err) {
-        errorMsg.textContent = 'Erro de conexão';
+        errorMsg.textContent = 'Erro de conexão: ' + (err && err.message ? err.message : 'falha desconhecida');
         errorMsg.style.display = 'block';
       }
     });
