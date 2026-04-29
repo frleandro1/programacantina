@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Programa Cantina</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .user-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .badge-admin {
+            background: #fee2e2;
+            color: #7f1d1d;
+        }
+
+        .badge-gerente {
+            background: #fef3c7;
+            color: #78350f;
+        }
+
+        .badge-atendente {
+            background: #cffafe;
+            color: #164e63;
+        }
+
+        .badge-produtor {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .restricted-section {
+            opacity: 0.5;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .restricted-section::after {
+            content: 'Acesso Restrito';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .permission-info {
+            background: #f0f9fa;
+            border: 1px solid #0891b2;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #0e7490;
+        }
+
+        .permission-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .permission-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #0891b2;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .permission-item.allowed {
+            border-left-color: #10b981;
+        }
+
+        .permission-item.denied {
+            border-left-color: #ef4444;
+            opacity: 0.6;
+        }
+
+        .permission-icon {
+            font-size: 1.25rem;
+        }
+
+        .permission-name {
+            font-weight: 600;
+        }
+
+        .permission-status {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <div class="logo-icon">🛒</div>
+                <div>
+                    <div>Programa Cantina</div>
+                    <div style="font-size: 0.75rem; color: var(--text-light); font-weight: normal;">Sistema de Gerenciamento Integrado</div>
+                </div>
+            </div>
+            <div class="user-menu">
+                <div class="status">
+                    <span class="status-dot"></span>
+                    <span>Online</span>
+                </div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Usuário</div>
+                    <div class="user-type" id="userType">Tipo</div>
+                </div>
+                <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()">U</div>
+                <span class="user-badge" id="userBadge"></span>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <a href="#" class="dropdown-item" onclick="editarPerfil()">👤 Meu Perfil</a>
+                    <a href="#" class="dropdown-item" onclick="alterarSenha()">🔐 Alterar Senha</a>
+                    <a href="#" class="dropdown-item logout" onclick="fazerLogout()">🚪 Sair</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Informações de Permissão -->
+        <div class="permission-info" id="permissionInfo">
+            <strong>Suas Permissões:</strong>
+            <div class="permission-list" id="permissionList"></div>
+        </div>
+
+        <!-- Seção: Visão Geral (Gerente e Admin) -->
+        <div id="secaoVisaoGeral">
+            <div class="grid grid-4">
+                <div class="stat-card primary">
+                    <div class="stat-label">Total de Vendas</div>
+                    <div class="stat-value" id="total-vendas">0</div>
+                    <div class="stat-label">Transações</div>
+                </div>
+                <div class="stat-card secondary">
+                    <div class="stat-label">Receita Total</div>
+                    <div class="stat-value" id="receita-total">R$ 0,00</div>
+                    <div class="stat-label">Faturamento</div>
+                </div>
+                <div class="stat-card accent">
+                    <div class="stat-label">Estoque Total</div>
+                    <div class="stat-value" id="estoque-total">0</div>
+                    <div class="stat-label">Unidades</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-label">Ticket Médio</div>
+                    <div class="stat-value" id="ticket-medio">R$ 0,00</div>
+                    <div class="stat-label">Por transação</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção: Produção -->
+        <div id="secaoProducao" class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">📦 Registrar Produção</div>
+                    <div class="card-description">Adicione novos produtos ao estoque</div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="prod-produto">Produto *</label>
+                    <select id="prod-produto" name="produto">
+                        <option value="">Selecione um produto</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="prod-quantidade">Quantidade Produzida *</label>
+                    <input type="number" id="prod-quantidade" min="1" placeholder="Ex: 50">
+                </div>
+
+                <div class="form-group">
+                    <label for="prod-responsavel">Responsável pela Produção *</label>
+                    <input type="text" id="prod-responsavel" placeholder="Ex: Maria Silva">
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" onclick="registrarProducao()">
+                ✓ Registrar Produção
+            </button>
+        </div>
+
+        <!-- Seção: Estoque (Produtor e Gerente) -->
+        <div id="secaoEstoque" class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">📊 Estoque de Produtos</div>
+                    <div class="card-description">Visualize a quantidade disponível</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Categoria</th>
+                            <th>Preço</th>
+                            <th>Estoque</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="estoque-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center">Carregando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Seção: Vendas -->
+        <div id="secaoVendas">
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">➕ Adicionar Produto</div>
+                            <div class="card-description">Selecione um produto e quantidade</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="venda-produto">Produto</label>
+                            <select id="venda-produto" name="produto">
+                                <option value="">Selecione um produto</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="venda-quantidade">Quantidade</label>
+                            <input type="number" id="venda-quantidade" min="1" placeholder="Ex: 5">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary btn-block" onclick="adicionarAoCarrinho()">
+                        ➕ Adicionar ao Carrinho
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">💳 Finalizar Venda</div>
+                            <div class="card-description">Complete a transação</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="venda-atendente">Atendente *</label>
+                        <input type="text" id="venda-atendente" placeholder="Nome do atendente">
+                    </div>
+
+                    <div style="background: var(--light-bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600;">Total:</span>
+                            <span style="font-size: 1.5rem; color: var(--secondary-color); font-weight: bold;" id="carrinho-total">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary btn-block" id="finalizar-venda-btn" onclick="finalizarVenda()" disabled>
+                        ✓ Finalizar Venda
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">🛒 Carrinho de Vendas</div>
+                        <div class="card-description">Produtos selecionados</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Quantidade</th>
+                                <th>Preço</th>
+                                <th>Subtotal</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carrinho-tbody">
+                            <tr>
+                                <td colspan="5" class="text-center">Carrinho vazio</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção: Histórico de Vendas (Gerente e Admin) -->
+        <div id="secaoHistorico" class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">📈 Histórico de Vendas</div>
+                    <div class="card-description">Análise detalhada de todas as transações</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data/Hora</th>
+                            <th>Atendente</th>
+                            <th>Itens</th>
+                            <th>Total</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendas-tbody">
+                        <tr>
+                            <td colspan="6" class="text-center">Carregando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Seção: Histórico de Produções -->
+        <div id="secaoMovimentacoes" class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">⏱️ Histórico de Produções</div>
+                    <div class="card-description">Últimas produções registradas</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>Data/Hora</th>
+                            <th>Responsável</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movimentacoes-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center">Carregando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="background: white; border-top: 1px solid var(--border-color); padding: 2rem; margin-top: 3rem; text-align: center; color: var(--text-light);">
+        <p>&copy; 2024 Programa Cantina. Todos os direitos reservados.</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Trabalho de Conclusão de Curso - Técnico em Informática | ETEC Marechal Mascarenhas de Moraes</p>
+    </footer>
+
+    <script src="persistence.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Variáveis globais para dashboard
+        let carrinho = [];
+
+        // Verificar autenticação ao carregar
+        async function verificarAutenticacao() {
+            try {
+                const response = await fetch('auth.php?api=usuario', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (!data.success) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                usuarioAtual = data.usuario;
+                permissoes = data.permissoes || {};
+                
+                // Atualizar informações do usuário
+                document.getElementById('userName').textContent = usuarioAtual.nome;
+                document.getElementById('userType').textContent = obterTipoUsuario(usuarioAtual.tipo);
+                document.getElementById('userAvatar').textContent = usuarioAtual.nome.charAt(0).toUpperCase();
+                
+                // Adicionar badge
+                const badge = document.getElementById('userBadge');
+                badge.textContent = obterTipoUsuario(usuarioAtual.tipo);
+                badge.className = 'user-badge badge-' + usuarioAtual.tipo;
+                
+                // Aplicar restrições de permissão
+                aplicarRestricoesPermissoes();
+                
+                // Carregar dados
+                carregarProdutos();
+                carregarEstatisticas();
+                carregarVendas();
+                carregarMovimentacoes();
+                carregarEstoque();
+            } catch (error) {
+                console.error('Erro ao verificar autenticação:', error);
+                window.location.href = 'login.html';
+            }
+        }
+
+        function obterTipoUsuario(tipo) {
+            const tipos = {
+                'admin': 'Administrador',
+                'gerente': 'Gerente',
+                'atendente': 'Vendedor',
+                'produtor': 'Produtor'
+            };
+            return tipos[tipo] || 'Usuário';
+        }
+
+        function aplicarRestricoesPermissoes() {
+            // Mostrar/ocultar seções baseado em permissões
+            const secoes = {
+                'secaoVisaoGeral': permissoes.ver_visao_geral,
+                'secaoProducao': permissoes.ver_producao,
+                'secaoVendas': permissoes.ver_vendas,
+                'secaoHistorico': permissoes.ver_historico_vendas,
+                'secaoEstoque': permissoes.acessar_estoque,
+                'secaoMovimentacoes': permissoes.ver_producao
+            };
+            
+            for (let [secao, temPermissao] of Object.entries(secoes)) {
+                const elemento = document.getElementById(secao);
+                if (elemento) {
+                    elemento.style.display = temPermissao ? 'block' : 'none';
+                }
+            }
+            
+            // Desabilitar botões baseado em permissões
+            if (!permissoes.registrar_producao) {
+                const btn = document.querySelector('[onclick="registrarProducao()"]');
+                if (btn) btn.disabled = true;
+            }
+            
+            if (!permissoes.registrar_venda) {
+                const btn = document.getElementById('finalizar-venda-btn');
+                if (btn) btn.disabled = true;
+            }
+            
+            // Mostrar lista de permissões
+            mostrarListaPermissoes();
+        }
+
+        function mostrarListaPermissoes() {
+            const permissionList = document.getElementById('permissionList');
+            permissionList.innerHTML = '';
+            
+            const labels = {
+                'ver_visao_geral': 'Ver Visão Geral',
+                'ver_producao': 'Ver Produção',
+                'registrar_producao': 'Registrar Produção',
+                'ver_vendas': 'Ver Vendas',
+                'registrar_venda': 'Registrar Venda',
+                'ver_historico_vendas': 'Ver Histórico de Vendas',
+                'acessar_estoque': 'Acessar Estoque',
+                'ver_relatorios': 'Ver Relatórios'
+            };
+            
+            for (let [permissao, valor] of Object.entries(permissoes)) {
+                if (labels[permissao]) {
+                    const item = document.createElement('div');
+                    item.className = 'permission-item ' + (valor ? 'allowed' : 'denied');
+                    item.innerHTML = `
+                        <span class="permission-icon">${valor ? '✓' : '✗'}</span>
+                        <div>
+                            <div class="permission-name">${labels[permissao]}</div>
+                            <div class="permission-status">${valor ? 'Permitido' : 'Restrito'}</div>
+                        </div>
+                    `;
+                    permissionList.appendChild(item);
+                }
+            }
+        }
+
+        function toggleDropdown() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.classList.toggle('active');
+        }
+
+        function fecharDropdown() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.classList.remove('active');
+        }
+
+        async function fazerLogout() {
+            if (confirm('Tem certeza que deseja sair?')) {
+                try {
+                    const response = await fetch('auth.php?api=logout', {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.href = 'login.html';
+                    }
+                } catch (error) {
+                    console.error('Erro ao fazer logout:', error);
+                }
+            }
+        }
+
+        function editarPerfil() {
+            alert('Funcionalidade de edição de perfil em desenvolvimento');
+            fecharDropdown();
+        }
+
+        function alterarSenha() {
+            alert('Funcionalidade de alteração de senha em desenvolvimento');
+            fecharDropdown();
+        }
+
+        // Fechar dropdown ao clicar fora
+        document.addEventListener('click', function(event) {
+            const userAvatar = document.getElementById('userAvatar');
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            
+            if (!userAvatar.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                fecharDropdown();
+            }
+        });
+
+        // Verificar autenticação ao carregar a página
+        verificarAutenticacao();
+    </script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar - Programa Cantina</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0891b2 0%, #10b981 100%);
+            padding: 1rem;
+        }
+
+        .registrar-container {
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .registrar-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .registrar-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .registrar-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #0891b2, #10b981);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1rem;
+            color: white;
+        }
+
+        .registrar-title {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .registrar-subtitle {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0891b2;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+        }
+
+        .form-group input.error {
+            border-color: #ef4444;
+        }
+
+        .form-help {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .form-help.error {
+            color: #ef4444;
+        }
+
+        .btn-registrar {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .btn-registrar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-registrar:active {
+            transform: translateY(0);
+        }
+
+        .registrar-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .registrar-footer p {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-login {
+            color: #0891b2;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .btn-login:hover {
+            color: #0e7490;
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .registrar-container {
+                padding: 1rem;
+            }
+
+            .registrar-card {
+                padding: 1.5rem;
+            }
+
+            .registrar-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="registrar-container">
+        <div class="registrar-card">
+            <div class="registrar-header">
+                <div class="registrar-logo">🛒</div>
+                <h1 class="registrar-title">Criar Conta</h1>
+                <p class="registrar-subtitle">Registre-se no Programa Cantina</p>
+            </div>
+
+            <div id="alerta"></div>
+
+            <form id="registrarForm">
+                <div class="form-group">
+                    <label for="nome">Nome Completo *</label>
+                    <input 
+                        type="text" 
+                        id="nome" 
+                        name="nome" 
+                        placeholder="Seu nome completo" 
+                        required
+                    >
+                    <div class="form-help" id="nomeHelp"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="seu@email.com" 
+                        required
+                    >
+                    <div class="form-help" id="emailHelp"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha *</label>
+                    <input 
+                        type="password" 
+                        id="senha" 
+                        name="senha" 
+                        placeholder="Mínimo 6 caracteres" 
+                        required
+                    >
+                    <div class="form-help" id="senhaHelp">Mínimo 6 caracteres</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmar_senha">Confirmar Senha *</label>
+                    <input 
+                        type="password" 
+                        id="confirmar_senha" 
+                        name="confirmar_senha" 
+                        placeholder="Confirme sua senha" 
+                        required
+                    >
+                    <div class="form-help" id="confirmarSenhaHelp"></div>
+                </div>
+
+                <button type="submit" class="btn-registrar" id="btnRegistrar">
+                    Criar Conta
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Registrando...</p>
+                </div>
+            </form>
+
+            <div class="registrar-footer">
+                <p>Já tem uma conta?</p>
+                <a href="login.html" class="btn-login">Faça login aqui</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar se usuário já está logado
+        async function verificarLogin() {
+            try {
+                const response = await fetch('auth.php?api=usuario', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar login:', error);
+            }
+        }
+
+        verificarLogin();
+
+        // Validação em tempo real
+        document.getElementById('nome').addEventListener('blur', function() {
+            const nomeHelp = document.getElementById('nomeHelp');
+            if (this.value.trim().length < 3) {
+                this.classList.add('error');
+                nomeHelp.textContent = 'Nome deve ter no mínimo 3 caracteres';
+                nomeHelp.classList.add('error');
+            } else {
+                this.classList.remove('error');
+                nomeHelp.textContent = '';
+                nomeHelp.classList.remove('error');
+            }
+        });
+
+        document.getElementById('email').addEventListener('blur', function() {
+            const emailHelp = document.getElementById('emailHelp');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(this.value)) {
+                this.classList.add('error');
+                emailHelp.textContent = 'Email inválido';
+                emailHelp.classList.add('error');
+            } else {
+                this.classList.remove('error');
+                emailHelp.textContent = '';
+                emailHelp.classList.remove('error');
+            }
+        });
+
+        document.getElementById('senha').addEventListener('input', function() {
+            const senhaHelp = document.getElementById('senhaHelp');
+            const confirmarSenha = document.getElementById('confirmar_senha');
+            
+            if (this.value.length < 6) {
+                this.classList.add('error');
+                senhaHelp.textContent = 'Mínimo 6 caracteres';
+                senhaHelp.classList.add('error');
+            } else {
+                this.classList.remove('error');
+                senhaHelp.textContent = '';
+                senhaHelp.classList.remove('error');
+            }
+
+            // Validar confirmação
+            if (confirmarSenha.value && this.value !== confirmarSenha.value) {
+                confirmarSenha.classList.add('error');
+            } else if (confirmarSenha.value) {
+                confirmarSenha.classList.remove('error');
+            }
+        });
+
+        document.getElementById('confirmar_senha').addEventListener('input', function() {
+            const confirmarSenhaHelp = document.getElementById('confirmarSenhaHelp');
+            const senha = document.getElementById('senha').value;
+            
+            if (this.value !== senha) {
+                this.classList.add('error');
+                confirmarSenhaHelp.textContent = 'Senhas não conferem';
+                confirmarSenhaHelp.classList.add('error');
+            } else {
+                this.classList.remove('error');
+                confirmarSenhaHelp.textContent = '';
+                confirmarSenhaHelp.classList.remove('error');
+            }
+        });
+
+        // Processar formulário de registro
+        document.getElementById('registrarForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('nome').value;
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const confirmar_senha = document.getElementById('confirmar_senha').value;
+            const btnRegistrar = document.getElementById('btnRegistrar');
+            const loading = document.getElementById('loading');
+
+            // Validação básica
+            if (!nome || !email || !senha || !confirmar_senha) {
+                mostrarAlerta('Preencha todos os campos', 'error');
+                return;
+            }
+
+            if (senha.length < 6) {
+                mostrarAlerta('Senha deve ter no mínimo 6 caracteres', 'error');
+                return;
+            }
+
+            if (senha !== confirmar_senha) {
+                mostrarAlerta('Senhas não conferem', 'error');
+                return;
+            }
+
+            // Mostrar loading
+            btnRegistrar.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('auth.php?api=registrar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome: nome,
+                        email: email,
+                        senha: senha,
+                        confirmar_senha: confirmar_senha
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarAlerta('Conta criada com sucesso! Redirecionando para login...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    mostrarAlerta(data.error || 'Erro ao registrar', 'error');
+                    btnRegistrar.style.display = 'block';
+                    loading.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarAlerta('Erro ao conectar com o servidor', 'error');
+                btnRegistrar.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        });
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alertDiv = document.getElementById('alerta');
+            const classe = tipo === 'error' ? 'alert-error' : 'alert-success';
+            alertDiv.innerHTML = `<div class="alert ${classe}">${mensagem}</div>`;
+        }
+    </script>
+</body>
+</html>

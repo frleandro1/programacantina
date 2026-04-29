@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Programa Cantina</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0891b2 0%, #10b981 100%);
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #0891b2, #10b981);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1rem;
+            color: white;
+        }
+
+        .login-title {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0891b2;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #0891b2, #0e7490);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .login-footer p {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-registrar {
+            color: #0891b2;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .btn-registrar:hover {
+            color: #0e7490;
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .demo-info {
+            background: #f0f9fa;
+            border: 1px solid #0891b2;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: #0e7490;
+        }
+
+        .demo-info strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #0891b2;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #0891b2;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 1rem;
+            }
+
+            .login-card {
+                padding: 1.5rem;
+            }
+
+            .login-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">🛒</div>
+                <h1 class="login-title">Programa Cantina</h1>
+                <p class="login-subtitle">Sistema de Gerenciamento</p>
+            </div>
+
+            <div id="alerta"></div>
+
+            <div class="demo-info">
+                <strong>Credenciais de Demonstração:</strong>
+                Email: admin@cantina.com<br>
+                Senha: admin123
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="seu@email.com" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input 
+                        type="password" 
+                        id="senha" 
+                        name="senha" 
+                        placeholder="Sua senha" 
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn-login" id="btnLogin">
+                    Entrar
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Autenticando...</p>
+                </div>
+            </form>
+
+            <div class="login-footer">
+                <p>Não tem uma conta?</p>
+                <a href="registrar.html" class="btn-registrar">Criar uma nova conta</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar se usuário já está logado
+        async function verificarLogin() {
+            try {
+                const response = await fetch('auth.php?api=usuario', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar login:', error);
+            }
+        }
+
+        // Verificar login ao carregar a página
+        verificarLogin();
+
+        // Mostrar mensagens de sessão
+        function mostrarMensagem() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mensagem = urlParams.get('msg');
+            const erro = urlParams.get('erro');
+
+            const alertDiv = document.getElementById('alerta');
+
+            if (mensagem) {
+                alertDiv.innerHTML = `<div class="alert alert-success">${decodeURIComponent(mensagem)}</div>`;
+            } else if (erro) {
+                alertDiv.innerHTML = `<div class="alert alert-error">${decodeURIComponent(erro)}</div>`;
+            }
+        }
+
+        mostrarMensagem();
+
+        // Processar formulário de login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const btnLogin = document.getElementById('btnLogin');
+            const loading = document.getElementById('loading');
+
+            // Validação básica
+            if (!email || !senha) {
+                mostrarAlerta('Preencha todos os campos', 'error');
+                return;
+            }
+
+            // Mostrar loading
+            btnLogin.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('auth.php?api=login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        senha: senha
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarAlerta('Login realizado com sucesso!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else {
+                    mostrarAlerta(data.error || 'Erro ao fazer login', 'error');
+                    btnLogin.style.display = 'block';
+                    loading.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarAlerta('Erro ao conectar com o servidor', 'error');
+                btnLogin.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        });
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alertDiv = document.getElementById('alerta');
+            const classe = tipo === 'error' ? 'alert-error' : 'alert-success';
+            alertDiv.innerHTML = `<div class="alert ${classe}">${mensagem}</div>`;
+        }
+    </script>
+</body>
+</html>
