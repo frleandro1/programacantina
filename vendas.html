@@ -9,22 +9,30 @@
 body {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   margin: 0;
   background: #f5f5f5;
+}
+
+/* Neutraliza regra global .topbar + * do theme.css nesta tela */
+.topbar + * {
+  display: block;
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .content-wrapper {
   display: flex;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .main {
   flex: 1;
   padding: 10px;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .sidebar {
@@ -278,6 +286,7 @@ body {
   line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -511,6 +520,320 @@ body {
   box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
 }
 
+@media (max-width: 1024px) {
+  body {
+    min-height: auto;
+  }
+
+  .content-wrapper {
+    flex-direction: column;
+    overflow: visible;
+    min-height: auto;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: none;
+    max-height: none;
+    min-height: 0;
+  }
+
+  .main {
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .banner-container {
+    max-height: 86px;
+  }
+
+  .banner-img {
+    max-height: 86px;
+  }
+
+  .prod-grid,
+  .prod-grid-quick {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    height: auto;
+    min-height: 70px;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .brand {
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .brand span {
+    font-size: 15px !important;
+  }
+
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 7px 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .hamburger span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+    transition: all 0.3s;
+    transform-origin: center;
+  }
+
+  .hamburger.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .hamburger.open span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .nav {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .nav.open {
+    display: flex;
+  }
+
+  .nav-menu {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    width: 220px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 70px 16px 24px;
+    gap: 8px;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+  }
+
+  .nav a {
+    white-space: nowrap;
+    font-size: 15px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
+    display: block;
+    text-align: left;
+  }
+
+  .nav a:hover, .nav a.active {
+    background: rgba(255,255,255,0.28);
+  }
+
+  .content-wrapper {
+    display: block;
+  }
+
+  .main {
+    padding: 10px;
+  }
+
+  .tabs {
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .quick-products-section {
+    padding: 12px;
+  }
+
+  .quick-products-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .prod-grid,
+  .prod-grid-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .prod-card {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .prod-card h3 {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .prod-imagem-wrap {
+    height: 75px;
+  }
+
+  .prod-imagem {
+    object-fit: contain;
+    padding: 4px;
+  }
+
+  .prod-imagem-fallback {
+    font-size: 30px;
+  }
+
+  .prod-preco {
+    font-size: 18px;
+  }
+
+  .sidebar {
+    max-height: none;
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .cart-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .cart-item-controls {
+    justify-content: flex-start;
+  }
+
+  #btnFinalizar {
+    width: 100%;
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+  }
+
+  .cart-total {
+    font-size: 18px;
+  }
+
+  .cart-total span:last-child {
+    font-size: 20px;
+  }
+
+  .modal-content {
+    width: 96%;
+    max-height: 92vh;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-body {
+    padding: 14px;
+  }
+
+  .modal-footer {
+    padding: 12px;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 430px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .prod-imagem-wrap {
+    height: 60px;
+  }
+
+  .prod-imagem-fallback {
+    font-size: 24px;
+  }
+
+  .content-wrapper,
+  .main,
+  .sidebar,
+  .tabs,
+  .quick-products-section {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .topbar {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+
+  .brand {
+    width: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .main,
+  .sidebar {
+    padding: 10px;
+  }
+
+  .prod-imagem-wrap {
+    height: 80px;
+  }
+
+  .prod-imagem {
+    object-fit: contain;
+    padding: 4px;
+  }
+
+  .prod-grid,
+  .prod-grid-quick {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-item-info {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .cart-item-controls {
+    gap: 8px;
+  }
+}
+
 @media print {
   @page {
     margin: 0.5mm;
@@ -639,20 +962,6 @@ body {
 </style>
 </head>
 <body>
-<button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
-<script>
-(function(){
-  var btn = document.getElementById('btnVoltarGlobal');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    window.location.href = 'login-menu.html';
-  });
-})();
-</script>
 <div class="topbar">
   <div class="brand">
     <!-- Logo com fallback visual -->
@@ -665,12 +974,18 @@ body {
         onerror="this.style.display='none'; this.parentElement.textContent='🍽️';"
       >
     </div>
-    <span style="font-size: 18px; font-weight: bold;">Programa Cantina</span>
+    <span style="font-size: 18px; font-weight: bold;">LefroCantina</span>
   </div>
-  <nav class="nav">
-    <a href="vendas.html" class="active">Vendas</a>
-    <a href="dashboard.html">Produção</a>
-    <a href="login-menu.html" onclick="logout()">Sair</a>
+  <button class="hamburger" id="hamburguerBtn" aria-label="Menu" style="display:none;" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+  <nav class="nav" id="navMenu" onclick="fecharNavFora(event)">
+    <div class="nav-menu">
+      <a href="vendas.html" class="active">Vendas</a>
+      <a href="dashboard.html">Produção</a>
+      <a href="login-menu.html" onclick="if (window.history.length > 1) { window.history.back(); return false; }">Voltar</a>
+      <a href="login-menu.html" onclick="logout()">Sair</a>
+    </div>
   </nav>
 </div>
 <div id="logoContainer" class="logo-container"></div>
@@ -725,6 +1040,35 @@ body {
   </div>
 </div>
 <script src="js/vendas.js?v=20260413e"></script>
+<script>
+(function() {
+  const btn = document.getElementById('hamburguerBtn');
+  const nav = document.getElementById('navMenu');
+  const mq = window.matchMedia('(max-width: 768px)');
+
+  function aplicar(mobile) {
+    btn.style.display = mobile ? 'flex' : 'none';
+    if (!mobile) nav.classList.remove('open');
+  }
+
+  mq.addEventListener('change', e => aplicar(e.matches));
+  aplicar(mq.matches);
+
+  window.toggleNav = function() {
+    btn.classList.toggle('open');
+    nav.classList.toggle('open');
+    document.body.style.overflow = nav.classList.contains('open') ? 'hidden' : '';
+  };
+
+  window.fecharNavFora = function(e) {
+    if (e.target === nav) {
+      btn.classList.remove('open');
+      nav.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  };
+})();
+</script>
 <script>
 // Controlar visibilidade de links baseado no tipo de usuário
 document.addEventListener('DOMContentLoaded', () => {

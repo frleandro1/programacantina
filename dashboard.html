@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Administração - Programa Cantina</title>
+<title>Administração - Lefro Cantina</title>
 <link rel="stylesheet" href="css/theme.css">
 <style>
 body {
@@ -209,6 +209,49 @@ tbody tr:hover {
   min-width: 180px;
 }
 
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .section {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .btn-group {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .btn-group .btn {
+    width: 100%;
+  }
+
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
 @media print {
   .topbar, .btn, .filters {
     display: none !important;
@@ -217,28 +260,15 @@ tbody tr:hover {
 </style>
 </head>
 <body>
-<button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
-<script>
-(function(){
-  var btn = document.getElementById('btnVoltarGlobal');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    window.location.href = 'login-menu.html';
-  });
-})();
-</script>
 <div class="topbar">
   <div class="brand">
     <img src="LOGO_F.png" alt="Logo Cantina" class="brand-logo">
-    <span>Programa Cantina</span>
+    <span>Lefro Cantina</span>
   </div>
   <nav class="nav">
     <a href="vendas.html">Vendas</a>
     <a href="dashboard.html">Produção</a>
+    <a href="login-menu.html" onclick="if (window.history.length > 1) { window.history.back(); return false; }">Voltar</a>
     <a href="relatorios.html">Relatórios</a>
     <a href="login-menu.html" class="active">Administração</a>
     <a href="#" onclick="logout()">Sair</a>

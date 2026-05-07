@@ -3,35 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel do Administrador - Programa Cantina</title>
-<link rel="stylesheet" href="css/theme.css">
+<title>Painel do Administrador - Lefro Cantina</title>
 <style>
+:root {
+  --brand: #c445ff;
+  --brand-2: #a933e6;
+  --bg: #f7f1fb;
+  --text: #24112f;
+  --muted: #7b6a88;
+  --card: #ffffff;
+  --border: #e6d7f1;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(180deg, #fcf8ff 0%, #f4ecfb 100%);
+  color: var(--text);
+  line-height: 1.5;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100dvh;
+  height: auto;
+  margin: 0;
+}
+
+.topbar {
+  height: 70px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 10px 24px rgba(169, 51, 230, 0.2);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(66, 16, 92, 0.25);
+}
+
+.brand-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22));
+}
+
+.nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  opacity: 0.92;
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: background 0.2s, opacity 0.2s, transform 0.2s;
+}
+
+.nav a:hover,
+.nav a.active {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.hamburger {
+  display: none;
 }
 
 .container {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sidebar {
   width: 250px;
-  background: var(--card);
-  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, #ffffff 0%, #faf4ff 100%);
+  border-right: 1px solid rgba(196, 69, 255, 0.18);
   padding: 20px;
   overflow-y: auto;
-  box-shadow: 2px 0 5px rgba(248, 246, 246, 0.1);
+  box-shadow: 6px 0 18px rgba(196, 69, 255, 0.08);
 }
 
 .sidebar h3 {
   margin-top: 0;
   font-size: 13px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #8a6c9f;
   letter-spacing: 0.5px;
 }
 
@@ -48,49 +135,49 @@ body {
 .sidebar-menu button {
   width: 100%;
   padding: 12px;
-  background: transparent;
-  border: 1px solid var(--border);
+  background: rgba(196, 69, 255, 0.03);
+  border: 1px solid rgba(196, 69, 255, 0.14);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  color: var(--muted);
+  color: #5d3a73;
   transition: all 0.3s;
   text-align: left;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .sidebar-menu button:hover {
-  background: rgba(255, 122, 69, 0.1);
-  border-color: #ff7a45;
-  color: #ff7a45;
+  background: rgba(196, 69, 255, 0.1);
+  border-color: #c445ff;
+  color: #c445ff;
 }
 
 .sidebar-menu button.active {
-  background: #ff7a45;
+  background: #c445ff;
   color: white;
-  border-color: #ff7a45;
-  box-shadow: 0 2px 8px rgba(255, 122, 69, 0.3);
+  border-color: #c445ff;
+  box-shadow: 0 2px 8px rgba(196, 69, 255, 0.3);
 }
 
 .sidebar-menu a {
   display: block;
   padding: 12px;
-  background: transparent;
-  border: 1px solid var(--border);
+  background: rgba(196, 69, 255, 0.03);
+  border: 1px solid rgba(196, 69, 255, 0.14);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  color: var(--muted);
+  color: #5d3a73;
   transition: all 0.3s;
   text-align: left;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
 }
 
 .sidebar-menu a:hover {
-  background: rgba(255, 122, 69, 0.1);
-  border-color: #ff7a45;
-  color: #ff7a45;
+  background: rgba(196, 69, 255, 0.1);
+  border-color: #c445ff;
+  color: #c445ff;
 }
 
 .main-content {
@@ -117,7 +204,7 @@ body {
 .section h2 {
   font-size: 18px;
   margin-bottom: 20px;
-  border-bottom: 2px solid #ff7a45;
+  border-bottom: 2px solid #c445ff;
   padding-bottom: 10px;
   color: var(--text);
 }
@@ -156,8 +243,8 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none !important;
-  border-color: #ff7a45 !important;
-  box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.2) !important;
+  border-color: #c445ff !important;
+  box-shadow: 0 0 0 3px rgba(196, 69, 255, 0.2) !important;
 }
 
 input::placeholder,
@@ -185,13 +272,13 @@ textarea::placeholder {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ff7a45 0%, #ff6a3d 100%);
+  background: linear-gradient(135deg, #c445ff 0%, #a933e6 100%);
   color: rgb(20, 18, 18);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 122, 69, 0.4);
+  box-shadow: 0 4px 12px rgba(196, 69, 255, 0.4);
 }
 
 .btn-secondary {
@@ -236,10 +323,13 @@ textarea::placeholder {
 .table-container {
   overflow-x: auto;
   margin-top: 25px;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
 }
 
 table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   background: var(--card);
   border: 1px solid var(--border);
@@ -248,7 +338,7 @@ table {
 }
 
 thead {
-  background: rgba(255, 122, 69, 0.1);
+  background: rgba(196, 69, 255, 0.1);
   border-bottom: 2px solid var(--border);
 }
 
@@ -256,7 +346,7 @@ th {
   padding: 14px;
   text-align: left;
   font-weight: 600;
-  color: #ff7a45; 
+  color: #c445ff; 
   font-size: 13px;
   text-transform: uppercase;
 }
@@ -264,16 +354,66 @@ th {
 td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
-  color: #ff7a45;
+  color: #c445ff;
 }
 
 tr:hover {
-  background: rgba(255, 122, 69, 0.05);
+  background: rgba(196, 69, 255, 0.05);
 }
 
 .action-buttons {
   display: flex;
   gap: 8px;
+}
+
+.produto-acoes-menu {
+  display: inline-block;
+  position: relative;
+}
+
+.produto-acoes-trigger {
+  border: 1px solid rgba(196, 69, 255, 0.35);
+  background: rgba(196, 69, 255, 0.1);
+  color: #5d3a73;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.produto-acoes-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 136px;
+  z-index: 40;
+  background: #ffffff;
+  border: 1px solid rgba(196, 69, 255, 0.25);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+}
+
+.produto-acoes-menu.open .produto-acoes-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#produtosTable th:last-child,
+#produtosTable td:last-child {
+  text-align: right;
+}
+
+#produtosTable td.produto-nome-cell {
+  text-align: left;
+}
+
+#produtosTable td[data-label="Ações"] .produto-acoes-menu {
+  margin-left: auto;
 }
 
 .action-buttons button {
@@ -338,7 +478,7 @@ tr:hover {
 
 .spinner {
   border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top: 4px solid #ff7a45;
+  border-top: 4px solid #c445ff;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -369,7 +509,7 @@ tr:hover {
 .config-card h2 {
   margin-top: 0;
   margin-bottom: 20px;
-  border-bottom: 2px solid #ff7a45;
+  border-bottom: 2px solid #c445ff;
   padding-bottom: 10px;
 }
 
@@ -385,8 +525,8 @@ tr:hover {
   margin-top: 30px;
   margin-bottom: 15px;
   padding: 16px 18px;
-  background: rgba(255, 122, 69, 0.08);
-  border: 1px solid rgba(255, 122, 69, 0.2);
+  background: rgba(196, 69, 255, 0.08);
+  border: 1px solid rgba(196, 69, 255, 0.2);
   border-radius: 10px;
 }
 
@@ -417,13 +557,13 @@ tr:hover {
   height: 72px;
   border-radius: 10px;
   overflow: hidden;
-  background: rgba(255, 122, 69, 0.1);
+  background: rgba(196, 69, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ff7a45;
+  color: #c445ff;
   font-size: 26px;
-  border: 1px solid rgba(255, 122, 69, 0.15);
+  border: 1px solid rgba(196, 69, 255, 0.15);
 }
 
 .produto-upload-preview img {
@@ -453,8 +593,8 @@ tr:hover {
   min-width: 34px;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(255, 122, 69, 0.14);
-  color: #ff7a45;
+  background: rgba(196, 69, 255, 0.14);
+  color: #c445ff;
   font-size: 12px;
   font-weight: 700;
   text-align: center;
@@ -515,31 +655,328 @@ input[type=\"color\"] {
   max-height: 150px;
   object-fit: contain;
 }
+
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(196, 69, 255, 0.18);
+    padding: 14px;
+    overflow: visible;
+  }
+
+  .sidebar-menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+  }
+
+  .sidebar-menu li {
+    margin: 0;
+  }
+
+  .main-content {
+    padding: 16px;
+    overflow: visible;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 7px 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .hamburger span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+    transition: all 0.3s;
+    transform-origin: center;
+  }
+
+  .hamburger.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .hamburger.open span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .nav {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .nav.open {
+    display: flex;
+  }
+
+  .nav-menu {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    width: 220px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 70px 16px 24px;
+    gap: 8px;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+  }
+
+  .nav a {
+    white-space: nowrap;
+    font-size: 15px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
+    display: block;
+    text-align: left;
+  }
+
+  .nav a:hover,
+  .nav a.active {
+    background: rgba(255,255,255,0.28);
+  }
+
+  .container {
+    display: block;
+  }
+
+  .sidebar {
+    overflow-x: auto;
+  }
+
+  .sidebar-menu {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .table-container {
+    margin-left: -12px;
+    margin-right: -12px;
+    border-radius: 0;
+    padding: 0 12px;
+  }
+
+  table {
+    min-width: 520px;
+    font-size: 13px;
+  }
+
+  th {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+
+  td {
+    padding: 10px 8px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Oculta colunas Categoria (2ª) e Status (5ª) na tabela de produtos */
+  #produtosTable th:nth-child(2),
+  #produtosTable td:nth-child(2),
+  #produtosTable th:nth-child(5),
+  #produtosTable td:nth-child(5) {
+    display: none;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+  }
+
+  .produto-selecao-barra {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .produto-upload-inline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 430px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .sidebar-menu {
+    grid-template-columns: 1fr;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .topbar {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+}
+
+@media (max-width: 390px) {
+  .section h1 {
+    font-size: 22px;
+  }
+
+  .section h2 {
+    font-size: 16px;
+  }
+
+  #produtosTable {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  #produtosTable thead {
+    display: none;
+  }
+
+  #produtosTable tbody,
+  #produtosTable tr,
+  #produtosTable td {
+    display: block;
+    width: 100%;
+  }
+
+  #produtosTable tr {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+  }
+
+  #produtosTable td {
+    border-bottom: 1px dashed rgba(196, 69, 255, 0.2);
+    padding: 8px 4px;
+  }
+
+  #produtosTable td:last-child {
+    border-bottom: 0;
+  }
+
+  #produtosTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #8a6c9f;
+    margin-bottom: 4px;
+  }
+
+  #produtosTable td.produto-nome-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #produtosTable td.produto-nome-cell::before {
+    flex-basis: 100%;
+  }
+
+  #produtosTable th:last-child,
+  #produtosTable td:last-child {
+    width: 100%;
+    text-align: right;
+  }
+
+  #produtosTable td:last-child .action-buttons {
+    display: none !important;
+  }
+
+  #produtosTable td:last-child .produto-acoes-menu {
+    display: inline-flex;
+  }
+
+  #produtosTable td[data-label="Ações"] {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  #produtosTable td[data-label="Ações"]::before {
+    content: none;
+  }
+
+  .produto-acoes-dropdown .btn-edit,
+  .produto-acoes-dropdown .btn-delete {
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+  }
+
+  #produtosTable td[colspan] {
+    text-align: center;
+    padding: 14px;
+  }
+
+  #produtosTable td[colspan]::before {
+    content: none;
+  }
+}
 </style>
 </head>
 <body>
-<button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
-<script>
-(function(){
-  var btn = document.getElementById('btnVoltarGlobal');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    window.location.href = 'login-menu.html';
-  });
-})();
-</script>
 <div class="topbar">
   <div class="brand">
     <img src="LOGO_F.png" alt="Logo Cantina" class="brand-logo">
-    <span>Programa Cantina</span>
+    <span>Lefro Cantina</span>
   </div>
-  <nav>
-    <a href="vendas.html">← Voltar</a>
-    <a href="#" onclick="logout()">Sair</a>
+  <button class="hamburger" id="hamburguerBtn" aria-label="Menu" style="display:none;" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+  <nav class="nav" id="navMenu" onclick="fecharNavFora(event)">
+    <div class="nav-menu">
+      <a href="login-menu.html" onclick="if (window.history.length > 1) { window.history.back(); return false; }">Voltar</a>
+      <a href="#" onclick="logout()">Sair</a>
+    </div>
   </nav>
 </div>
 
@@ -707,13 +1144,11 @@ input[type=\"color\"] {
               <th>Preço</th>
               <th>Estoque</th>
               <th>Status</th>
-              <th>Rápido</th>
-              <th>Ordem</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody id="produtosTableBody">
-            <tr><td colspan="8" class="loading">Carregando...</td></tr>
+            <tr><td colspan="6" class="loading">Carregando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -780,7 +1215,7 @@ input[type=\"color\"] {
           
           <div class="form-group">
             <label for="nomeCantina">Nome da Cantina</label>
-            <input type="text" id="nomeCantina" placeholder="Programa Cantina" value="Programa Cantina">
+            <input type="text" id="nomeCantina" placeholder="Lefro Cantina" value="Lefro Cantina">
           </div>
 
           <button type="button" class="btn btn-primary" onclick="salvarNomeCantina()">✓ Salvar Nome</button>
@@ -793,7 +1228,7 @@ input[type=\"color\"] {
           <h2>🏷️ Logo da Cantina</h2>
           <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Upload de logo para exibir no painel de vendas</p>
           
-          <div id="logoPreview" style="margin-bottom: 20px; text-align: center; min-height: 150px; display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 69, 0.1); border-radius: 8px;">
+          <div id="logoPreview" style="margin-bottom: 20px; text-align: center; min-height: 150px; display: flex; align-items: center; justify-content: center; background: rgba(196, 69, 255, 0.1); border-radius: 8px;">
             <p style="color: var(--muted);">📭 Nenhuma logo enviada</p>
           </div>
 
@@ -808,7 +1243,7 @@ input[type=\"color\"] {
           <h2>🎪 Banner de Produtos</h2>
           <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Upload de banner para exibir no topo do painel de vendas</p>
           
-          <div id="bannerPreview" style="margin-bottom: 20px; text-align: center; min-height: 150px; display: flex; align-items: center; justify-content: center; background: rgba(255, 122, 69, 0.1); border-radius: 8px;">
+          <div id="bannerPreview" style="margin-bottom: 20px; text-align: center; min-height: 150px; display: flex; align-items: center; justify-content: center; background: rgba(196, 69, 255, 0.1); border-radius: 8px;">
             <p style="color: var(--muted);">📭 Nenhum banner enviado</p>
           </div>
 
@@ -945,6 +1380,7 @@ usuarioForm.addEventListener('submit', async (e) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+
         id: usuarioEditandoId,
         login,
         senha,
@@ -1342,7 +1778,7 @@ async function carregarProdutos() {
     }
   } catch (error) {
     produtosCache = [];
-    document.getElementById('produtosTableBody').innerHTML = '<tr><td colspan="8">Erro ao carregar produtos</td></tr>';
+    document.getElementById('produtosTableBody').innerHTML = '<tr><td colspan="6">Erro ao carregar produtos</td></tr>';
     atualizarResumoSelecaoProdutosVenda();
   }
 }
@@ -1351,36 +1787,29 @@ function renderTabelaProdutos() {
   const tbody = document.getElementById('produtosTableBody');
 
   if (!Array.isArray(produtosCache) || produtosCache.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8">Nenhum produto encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">Nenhum produto encontrado</td></tr>';
     atualizarResumoSelecaoProdutosVenda();
     return;
   }
 
   tbody.innerHTML = produtosCache.map(p => `
         <tr>
-          <td style="display: flex; align-items: center; gap: 10px;">
-            ${p.imagem_url ? `<img src="${p.imagem_url}?t=${Date.now()}" alt="${p.nome}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">` : '<div style="width: 40px; height: 40px; border-radius: 6px; background: rgba(255, 122, 69, 0.2); display: flex; align-items: center; justify-content: center; font-size: 20px;">📸</div>'}
+          <td class="produto-nome-cell" data-label="Nome" style="display: flex; align-items: center; gap: 10px;">
+            ${p.imagem_url ? `<img src="${p.imagem_url}?t=${Date.now()}" alt="${p.nome}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">` : '<div style="width: 40px; height: 40px; border-radius: 6px; background: rgba(196, 69, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 20px;">📸</div>'}
             <strong>${p.nome}</strong>
           </td>
-          <td>${p.categoria}</td>
-          <td>R$ ${parseFloat(p.preco).toFixed(2)}</td>
-          <td>${p.estoque}</td>
-          <td><span style="background: ${p.status === 'ativo' ? '#28a745' : '#dc3545'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${p.status}</span></td>
-          <td class="produto-checkbox-cell">
-            <input type="checkbox" class="produto-venda-checkbox" value="${p.id}" ${produtoEstaSelecionadoVenda(p.id) ? 'checked' : ''} onchange="alternarProdutoVendaRapida(${p.id}, this.checked)">
-          </td>
-          <td class="produto-ordem-cell">
-            <div class="ordem-rapida-controls">
-              <span class="ordem-rapida-badge">${obterRotuloPosicaoProdutoVenda(p.id)}</span>
-              <button type="button" class="ordem-rapida-btn" onclick="moverProdutoVendaRapida(${p.id}, -1)" ${podeMoverProdutoVenda(p.id, -1) ? '' : 'disabled'}>↑</button>
-              <button type="button" class="ordem-rapida-btn" onclick="moverProdutoVendaRapida(${p.id}, 1)" ${podeMoverProdutoVenda(p.id, 1) ? '' : 'disabled'}>↓</button>
-            </div>
-          </td>
-          <td>
-            <div class="action-buttons" style="flex-direction: column; gap: 4px;">
-              <button class="btn-edit" onclick="iniciarEdicaoProduto(${p.id})">✏️ Editar</button>
-              <button class="btn-edit" data-nome="${String(p.nome).replace(/"/g, '&quot;')}" onclick="editarImagemProduto(${p.id}, this.dataset.nome)">🖼️ Imagem</button>
-              <button class="btn-delete" onclick="deletarProduto(${p.id})">🗑️ Deletar</button>
+          <td data-label="Categoria">${p.categoria}</td>
+          <td data-label="Preço">R$ ${parseFloat(p.preco).toFixed(2)}</td>
+          <td data-label="Estoque">${p.estoque}</td>
+          <td data-label="Status"><span style="background: ${p.status === 'ativo' ? '#28a745' : '#dc3545'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${p.status}</span></td>
+          <td data-label="Ações">
+            <div class="produto-acoes-menu">
+              <button type="button" class="produto-acoes-trigger" aria-label="Abrir ações do produto" onclick="toggleProdutoAcoesMenu(event, this)">☰</button>
+              <div class="produto-acoes-dropdown">
+                <button class="btn-edit" onclick="iniciarEdicaoProduto(${p.id})">✏️ Editar</button>
+                <button class="btn-edit" data-nome="${String(p.nome).replace(/"/g, '&quot;')}" onclick="editarImagemProduto(${p.id}, this.dataset.nome)">🖼️ Imagem</button>
+                <button class="btn-delete" onclick="deletarProduto(${p.id})">🗑️ Deletar</button>
+              </div>
             </div>
           </td>
         </tr>
@@ -1470,6 +1899,23 @@ function atualizarResumoSelecaoProdutosVenda() {
     ? 'Nenhum produto selecionado para destaque na página de vendas.'
     : `${total} produto(s) aparecerão em destaque acima das abas na tela de vendas, na ordem definida pelas setas.`;
 }
+
+function toggleProdutoAcoesMenu(event, trigger) {
+  event.stopPropagation();
+  const menu = trigger.closest('.produto-acoes-menu');
+  if (!menu) return;
+
+  document.querySelectorAll('.produto-acoes-menu.open').forEach((item) => {
+    if (item !== menu) item.classList.remove('open');
+  });
+
+  menu.classList.toggle('open');
+}
+
+document.addEventListener('click', (event) => {
+  if (event.target.closest('.produto-acoes-menu')) return;
+  document.querySelectorAll('.produto-acoes-menu.open').forEach((item) => item.classList.remove('open'));
+});
 
 function limparSelecaoProdutosVenda() {
   produtosSelecionadosVenda = [];
@@ -1583,6 +2029,35 @@ window.addEventListener('load', () => {
   carregarUsuarios();
   carregarProdutos();
 });
+</script>
+<script>
+(function() {
+  const btn = document.getElementById('hamburguerBtn');
+  const nav = document.getElementById('navMenu');
+  const mq = window.matchMedia('(max-width: 768px)');
+
+  function aplicar(mobile) {
+    btn.style.display = mobile ? 'flex' : 'none';
+    if (!mobile) nav.classList.remove('open');
+  }
+
+  mq.addEventListener('change', e => aplicar(e.matches));
+  aplicar(mq.matches);
+
+  window.toggleNav = function() {
+    btn.classList.toggle('open');
+    nav.classList.toggle('open');
+    document.body.style.overflow = nav.classList.contains('open') ? 'hidden' : '';
+  };
+
+  window.fecharNavFora = function(e) {
+    if (e.target === nav) {
+      btn.classList.remove('open');
+      nav.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  };
+})();
 </script>
 <script src="js/configuracoes.js"></script>
 </body>
