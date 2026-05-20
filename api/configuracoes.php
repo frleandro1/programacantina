@@ -1,19 +1,6 @@
 <?php
-// API para gerenciar configurações (cores, logo, banner)
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
-// Erro reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
-
+require_once __DIR__ . '/headers.php';
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../db/config.php';
 
 // Função para responder com JSON

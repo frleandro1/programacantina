@@ -1,20 +1,6 @@
 <?php
-// Configurar headers primeiro
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS, DELETE');
-header('Access-Control-Allow-Headers: Content-Type');
-
-// Log de erros
-error_reporting(E_ALL);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../logs/api-imagens.log');
-ini_set('display_errors', 0);
-
-// Criar diretório de logs se não existir
-if (!is_dir(__DIR__ . '/../logs')) {
-    @mkdir(__DIR__ . '/../logs', 0755, true);
-}
+require_once __DIR__ . '/headers.php';
+require_once __DIR__ . '/helpers.php';
 
 try {
     require_once __DIR__ . '/../db/config.php';

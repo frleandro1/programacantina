@@ -1,7 +1,6 @@
 <?php
-// API para salvar configurações de cupom
-header('Content-Type: application/json; charset=utf-8');
-
+require_once __DIR__ . '/headers.php';
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../db/config.php';
 
 function responder($sucesso, $msg, $dados = null) {
