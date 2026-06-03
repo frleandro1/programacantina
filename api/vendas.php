@@ -6,8 +6,6 @@ require_once __DIR__ . '/../db/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
-function json_error($msg){ echo json_encode(['sucesso'=>false,'mensagem'=>$msg]); exit; }
-
 function ensure_vendas_schema($conn) {
     $colSessao = $conn->query("SHOW COLUMNS FROM vendas LIKE 'sessao_caixa_id'");
     if (!$colSessao || $colSessao->num_rows === 0) {

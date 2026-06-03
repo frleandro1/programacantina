@@ -456,5 +456,74 @@ if ($method === 'POST' && $action === 'deletar_usuario') {
     exit;
 }
 
+if ($method === 'POST' && $action === 'verificar_senha_admin') {
+    $data = json_decode(file_get_contents('php://input'), true) ?? [];
+    $senha = (string)($data['senha'] ?? '');
+    
+    if ($senha === '') {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Senha inválida']);
+        exit;
+    }
+    
+    // Buscar usuário admin
+    $selectMap = get_usuario_select_map($conn);
+    $loginCol = $selectMap['login'];
+    $senhaCol = $selectMap['senha'];
+    $papelCol = $selectMap['papel'];
+    
+    // Buscar usuário admin ou administrador
+    $sql = sprintf(
+        'SELECT %s FROM usuarios WHERE %s IN ("admin", "administrador") LIMIT 1',
+        $senhaCol,
+        $papelCol
+    );
+    
+    $result = $conn->query($sql);
+    if (!$result || $result->num_rows === 0) {
+        // Tentar buscar por username admin
+        $sql2 = sprintf(
+            'SELECT %s FROM usuarios WHERE %s = "admin" LIMIT 1',
+            $senhaCol,
+            $loginCol
+        );
+        $result = $conn->query($sql2);
+    }
+    
+    if (!$result || $result->num_rows === 0) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Admin não encontrado']);
+        exit;
+    }
+    
+    $user = $result->fetch_assoc();
+    $senhaHash = $user[$senhaCol] ?? '';
+    
+    // Verificar com password_verify (bcrypt)
+    if (password_verify($senha, $senhaHash)) {
+        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
+        exit;
+    }
+    
+    // Verificar SHA256
+    if (hash('sha256', $senha) === $senhaHash) {
+        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
+        exit;
+    }
+    
+    // Verificar MD5
+    if (md5($senha) === $senhaHash) {
+        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
+        exit;
+    }
+    
+    // Verificar plaintext
+    if ($senha === $senhaHash) {
+        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
+        exit;
+    }
+    
+    echo json_encode(['sucesso' => false, 'mensagem' => 'Senha incorreta']);
+    exit;
+}
+
 echo json_encode(['sucesso' => false, 'mensagem' => 'Ação inválida']);
 ?>

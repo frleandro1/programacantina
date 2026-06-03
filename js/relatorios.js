@@ -210,13 +210,17 @@
     const tbody = document.getElementById('tbDetalhes');
     if (tbody) {
       tbody.innerHTML = cacheDetalhes
-        .map((r) => `<tr>
+        .map((r, idx) => `<tr>
           <td>#${r.pedido}</td>
           <td>${r.data}</td>
           <td>${r.atendente || ''}</td>
           <td>${r.produto}</td>
           <td>${r.quantidade}</td>
           <td>${moeda(r.subtotal)}</td>
+          <td style="display: flex; gap: 5px;">
+            <button class="btn" onclick="abrirModalEdicao(${idx})" style="padding: 6px 10px; font-size: 12px; background: #4CAF50;">✎ Editar</button>
+            <button class="btn" onclick="deletarVenda(${idx})" style="padding: 6px 10px; font-size: 12px; background: #f44336;">✕ Deletar</button>
+          </td>
         </tr>`)
         .join('');
     }
@@ -247,7 +251,7 @@
     const tbody = document.getElementById('tbCaixa');
     if (tbody) {
       tbody.innerHTML = cacheCaixa
-        .map((r) => `<tr>
+        .map((r, index) => `<tr>
           <td>#${r.sessao_id}</td>
           <td>${r.nome || r.login || ''}</td>
           <td>${r.abertura_caixa || ''}</td>
@@ -255,6 +259,7 @@
           <td>${r.status === 'aberto' ? 'Aberto' : 'Fechado'}</td>
           <td>${r.total_vendas || 0}</td>
           <td>${moeda(r.valor_total)}</td>
+          <td><button class="btn-delete" onclick="deletarCaixa(${index})">🗑️ Deletar</button></td>
         </tr>`)
         .join('');
     }
@@ -287,6 +292,129 @@
     ]);
     downloadCsv('logins_abertura_caixa.csv', toCsv(rows, ['Sessao', 'Usuario', 'Abertura', 'Fechamento', 'Status', 'Vendas', 'Total']));
   }
+
+  // FUNÇÕES DE CRUD PARA DETALHES DE VENDAS
+  window.abrirModalEdicao = function(index) {
+    const venda = cacheDetalhes[index];
+    if (!venda) return;
+
+    document.getElementById('editPedidoId').value = venda.pedido_id || venda.pedido || index;
+    document.getElementById('editPedidoNum').textContent = venda.pedido;
+    document.getElementById('editData').value = venda.data;
+    document.getElementById('editAtendente').value = venda.atendente || '';
+    document.getElementById('editProduto').value = venda.produto;
+    document.getElementById('editQuantidade').value = venda.quantidade;
+    document.getElementById('editValor').value = Number(venda.subtotal || 0).toFixed(2);
+
+    document.getElementById('modalEdicaoVenda').style.display = 'flex';
+  };
+
+  window.fecharModalEdicao = function() {
+    document.getElementById('modalEdicaoVenda').style.display = 'none';
+    document.getElementById('formEdicaoVenda').reset();
+  };
+
+  window.salvarEdicaoVenda = async function(event) {
+    event.preventDefault();
+
+    const pedidoId = document.getElementById('editPedidoId').value;
+    const data = document.getElementById('editData').value;
+    const atendente = document.getElementById('editAtendente').value;
+    const produto = document.getElementById('editProduto').value;
+    const quantidade = parseInt(document.getElementById('editQuantidade').value);
+    const valor = parseFloat(document.getElementById('editValor').value);
+
+    if (!data || !produto || quantidade <= 0 || valor < 0) {
+      alert('Preencha todos os campos corretamente');
+      return;
+    }
+
+    try {
+      const response = await fetch('api/relatorios.php?action=atualizar_venda', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedido_id: pedidoId,
+          data,
+          atendente,
+          produto,
+          quantidade,
+          valor
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.sucesso) {
+        alert('Venda atualizada com sucesso!');
+        fecharModalEdicao();
+        loadResumoDetalhes();
+      } else {
+        alert(result.mensagem || 'Erro ao atualizar venda');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao atualizar venda');
+    }
+  };
+
+  window.deletarVenda = async function(index) {
+    if (!confirm('Tem certeza que deseja deletar esta venda?')) return;
+
+    const venda = cacheDetalhes[index];
+    if (!venda) return;
+
+    try {
+      const response = await fetch('api/relatorios.php?action=deletar_venda', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedido_id: venda.pedido_id || venda.pedido || index
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.sucesso) {
+        alert('Venda deletada com sucesso!');
+        loadResumoDetalhes();
+      } else {
+        alert(result.mensagem || 'Erro ao deletar venda');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao deletar venda');
+    }
+  };
+
+  window.deletarCaixa = async function(index) {
+    if (!confirm('Tem certeza que deseja deletar esta sessão de caixa?')) return;
+
+    const caixa = cacheCaixa[index];
+    if (!caixa) return;
+
+    try {
+      const response = await fetch('api/relatorios.php?action=deletar_caixa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessao_id: caixa.sessao_id
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.sucesso) {
+        alert('Sessão de caixa deletada com sucesso!');
+        loadRelatorioCaixa();
+      } else {
+        alert(result.mensagem || 'Erro ao deletar sessão de caixa');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao deletar sessão de caixa');
+    }
+  };
 
   window.loadResumoVendas = loadResumoVendas;
   window.loadResumoProducao = loadResumoProducao;

@@ -1,0 +1,42 @@
+/* ===== LOGIN BACKGROUNDS ===== */
+
+/* Background com imagem para telas de login */
+body.login-screen {
+    background: url('../uploads/backgrounds/cantina-background.jpg') center/cover no-repeat fixed;
+    background-attachment: fixed;
+}
+
+/* Overlay escuro para melhorar legibilidade do texto */
+body.login-screen::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Garantir que o card de login fique bem visível */
+.login-card,
+.card {
+    position: relative;
+    z-index: 1;
+}
+
+/* Qualidade melhorada da imagem de background */
+@supports (object-fit: cover) {
+    body.login-screen {
+        background-size: cover;
+        background-position: center;
+    }
+}
+
+/* Responsivo para dispositivos menores */
+@media (max-width: 768px) {
+    body.login-screen {
+        background-attachment: scroll;
+    }
+}

@@ -6,8 +6,8 @@
     <title>Gerenciar Imagens de Produtos</title>
     <style>
         :root {
-            --brand: #c445ff;
-            --brand-2: #a933e6;
+            --brand: #1e5ba8;
+            --brand-2: #153d7a;
             --bg: #f7f1fb;
             --text: #24112f;
             --muted: #7b6a88;
@@ -106,10 +106,10 @@
         .sidebar {
             width: 250px;
             background: linear-gradient(180deg, #ffffff 0%, #faf4ff 100%);
-            border-right: 1px solid rgba(196, 69, 255, 0.18);
+            border-right: 1px solid rgba(30, 91, 168, 0.18);
             padding: 20px;
             overflow-y: auto;
-            box-shadow: 6px 0 18px rgba(196, 69, 255, 0.08);
+            box-shadow: 6px 0 18px rgba(30, 91, 168, 0.08);
         }
 
         .sidebar h3 {
@@ -133,8 +133,8 @@
         .sidebar-menu a {
             display: block;
             padding: 12px;
-            background: rgba(196, 69, 255, 0.03);
-            border: 1px solid rgba(196, 69, 255, 0.14);
+            background: rgba(30, 91, 168, 0.03);
+            border: 1px solid rgba(30, 91, 168, 0.14);
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
@@ -146,16 +146,16 @@
         }
 
         .sidebar-menu a:hover {
-            background: rgba(196, 69, 255, 0.1);
-            border-color: #c445ff;
-            color: #c445ff;
+            background: rgba(30, 91, 168, 0.1);
+            border-color: #153d7a;
+            color: #1e5ba8;
         }
 
         .sidebar-menu a.active {
-            background: #c445ff;
+            background: #1e5ba8;
             color: #ffffff;
-            border-color: #c445ff;
-            box-shadow: 0 2px 8px rgba(196, 69, 255, 0.3);
+            border-color: #1e5ba8;
+            box-shadow: 0 2px 8px rgba(30, 91, 168, 0.3);
         }
 
         .main-content {
@@ -213,7 +213,7 @@
             color: var(--text);
             margin-bottom: 20px;
             font-size: 18px;
-            border-bottom: 2px solid #c445ff;
+            border-bottom: 2px solid #1e5ba8;
             padding-bottom: 10px;
         }
 
@@ -244,32 +244,32 @@
         .form-group select:focus,
         .form-group input:focus {
             outline: none;
-            border-color: #c445ff;
+            border-color: #1e5ba8;
             box-shadow: 0 0 0 3px rgba(196, 69, 255, 0.2);
         }
 
         .drop-zone {
-            border: 2px dashed #c445ff;
+            border: 2px dashed #1e5ba8;
             border-radius: 10px;
             padding: 30px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            background: rgba(196, 69, 255, 0.05);
+            background: rgba(30, 91, 168, 0.05);
         }
 
         .drop-zone:hover {
-            background: rgba(196, 69, 255, 0.1);
-            border-color: #a933e6;
+            background: rgba(30, 91, 168, 0.1);
+            border-color: #153d7a;
         }
 
         .drop-zone.dragover {
-            background: rgba(196, 69, 255, 0.14);
-            border-color: #a933e6;
+            background: rgba(30, 91, 168, 0.14);
+            border-color: #153d7a;
         }
 
         .drop-zone p {
-            color: #c445ff;
+            color: #1e5ba8;
             font-weight: 600;
             margin-bottom: 10px;
         }
@@ -290,13 +290,13 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #c445ff 0%, #a933e6 100%);
+            background: linear-gradient(135deg, #1e5ba8 0%, #153d7a 100%);
             color: #141212;
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(196, 69, 255, 0.4);
+            box-shadow: 0 4px 12px rgba(30, 91, 168, 0.4);
         }
 
         .btn-primary:disabled {
@@ -417,7 +417,7 @@
 
         .spinner {
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #c445ff;
+            border-top: 3px solid #1e5ba8;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -723,8 +723,16 @@
                     cache: 'no-store'
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const texto = await response.text();
                 console.log('Resposta da API:', texto);
+                
+                if (!texto || texto.trim() === '') {
+                    throw new Error('Resposta vazia da API');
+                }
                 
                 const data = JSON.parse(texto);
 
@@ -757,8 +765,16 @@
                     cache: 'no-store'
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const texto = await response.text();
                 console.log('Resposta galeria:', texto);
+                
+                if (!texto || texto.trim() === '') {
+                    throw new Error('Resposta vazia da API');
+                }
                 
                 const data = JSON.parse(texto);
 

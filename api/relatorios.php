@@ -209,5 +209,110 @@ if ($method==='GET' && $action==='vendas_detalhes'){
     ok($out);
 }
 
+// CRUD: Atualizar venda
+if ($method==='POST' && $action==='atualizar_venda'){
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!$data) error('Dados inválidos');
+    
+    $pedido_id = $data['pedido_id'] ?? null;
+    $data_venda = $data['data'] ?? '';
+    $quantidade = $data['quantidade'] ?? 0;
+    $valor = $data['valor'] ?? 0;
+    
+    if (!$pedido_id || !$data_venda || $quantidade <= 0 || $valor < 0) {
+        error('Campos obrigatórios não preenchidos');
+    }
+    
+    $sql = "UPDATE vendas SET data_hora = ? WHERE id_venda = ?";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) error('Erro ao preparar statement: '.$conn->error);
+    
+    $data_hora = $data_venda . ' ' . date('H:i:s');
+    $stmt->bind_param('si', $data_hora, $pedido_id);
+    
+    if (!$stmt->execute()) {
+        error('Erro ao atualizar venda: '.$conn->error);
+    }
+    
+    // Atualizar itens da venda
+    $sql_item = "UPDATE itens_venda SET quantidade = ?, subtotal = ? WHERE id_venda = ?";
+    $stmt_item = $conn->prepare($sql_item);
+    if (!$stmt_item) error('Erro ao preparar statement: '.$conn->error);
+    
+    $stmt_item->bind_param('ddi', $quantidade, $valor, $pedido_id);
+    
+    if (!$stmt_item->execute()) {
+        error('Erro ao atualizar itens: '.$conn->error);
+    }
+    
+    ok(['mensagem' => 'Venda atualizada com sucesso']);
+}
+
+// CRUD: Deletar venda
+if ($method==='POST' && $action==='deletar_venda'){
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!$data) error('Dados inválidos');
+    
+    $pedido_id = $data['pedido_id'] ?? null;
+    
+    if (!$pedido_id) {
+        error('ID da venda não informado');
+    }
+    
+    // Deletar itens primeiro
+    $sql_itens = "DELETE FROM itens_venda WHERE id_venda = ?";
+    $stmt_itens = $conn->prepare($sql_itens);
+    if (!$stmt_itens) error('Erro ao preparar statement: '.$conn->error);
+    
+    $stmt_itens->bind_param('i', $pedido_id);
+    if (!$stmt_itens->execute()) {
+        error('Erro ao deletar itens: '.$conn->error);
+    }
+    
+    // Deletar venda
+    $sql_venda = "DELETE FROM vendas WHERE id_venda = ?";
+    $stmt_venda = $conn->prepare($sql_venda);
+    if (!$stmt_venda) error('Erro ao preparar statement: '.$conn->error);
+    
+    $stmt_venda->bind_param('i', $pedido_id);
+    if (!$stmt_venda->execute()) {
+        error('Erro ao deletar venda: '.$conn->error);
+    }
+    
+    ok(['mensagem' => 'Venda deletada com sucesso']);
+}
+
+if ($method==='POST' && $action==='deletar_caixa'){
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!$data) error('Dados inválidos');
+    
+    $sessao_id = $data['sessao_id'] ?? null;
+    
+    if (!$sessao_id) {
+        error('ID da sessão não informado');
+    }
+    
+    // Deletar vendas associadas primeiro (se houver)
+    $sql_vendas = "DELETE FROM vendas WHERE sessao_caixa_id = ?";
+    $stmt_vendas = $conn->prepare($sql_vendas);
+    if ($stmt_vendas) {
+        $stmt_vendas->bind_param('i', $sessao_id);
+        $stmt_vendas->execute();
+        $stmt_vendas->close();
+    }
+    
+    // Deletar sessão de caixa
+    $sql_caixa = "DELETE FROM caixa_sessoes WHERE id_sessao = ?";
+    $stmt_caixa = $conn->prepare($sql_caixa);
+    if (!$stmt_caixa) error('Erro ao preparar statement: '.$conn->error);
+    
+    $stmt_caixa->bind_param('i', $sessao_id);
+    if (!$stmt_caixa->execute()) {
+        error('Erro ao deletar sessão: '.$stmt_caixa->error);
+    }
+    
+    ok(['mensagem' => 'Sessão de caixa deletada com sucesso']);
+}
+
 echo json_encode(['sucesso'=>false,'mensagem'=>'Acao invalida em relatorios']);
 ?>

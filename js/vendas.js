@@ -274,6 +274,8 @@ function renderCarrinho() {
     lista.innerHTML = '<div class="cart-empty"><div class="cart-empty-icon"></div><p>Carrinho vazio</p></div>';
     totalText.textContent = 'R$ 0,00';
     btnFinalizar.disabled = true;
+    // Sincronizar modal
+    if (typeof sincronizarCarrinhoModal === 'function') sincronizarCarrinhoModal();
     return;
   }
   
@@ -295,6 +297,9 @@ function renderCarrinho() {
       </div>
     </div>
   `).join('');
+  
+  // Sincronizar modal
+  if (typeof sincronizarCarrinhoModal === 'function') sincronizarCarrinhoModal();
 }
 
 async function finalizarVenda() {

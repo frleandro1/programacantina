@@ -6,8 +6,6 @@ require_once __DIR__ . '/../db/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
-function json_error($msg) { echo json_encode(['sucesso'=>false,'mensagem'=>$msg]); exit; }
-
 function map_produto_row($r) {
     $imagem_url = null;
     if (isset($r['imagem']) && $r['imagem']) {
