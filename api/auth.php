@@ -44,13 +44,15 @@ function get_usuario_select_map($conn) {
 
 function normalize_usuario_role($papel) {
     $papel = trim((string)$papel);
-    $allowedRoles = ['atendente', 'producao', 'gestor', 'admin', 'administrador'];
+    $papelLower = function_exists('mb_strtolower') ? mb_strtolower($papel, 'UTF-8') : strtolower($papel);
 
-    if (!in_array($papel, $allowedRoles, true)) {
-        return 'atendente';
+    // Compatibilidade com valores legados: tudo que for perfil administrativo vira "admin".
+    if (in_array($papelLower, ['admin', 'administrador', 'gestor'], true)) {
+        return 'admin';
     }
 
-    return $papel;
+    // Qualquer outro valor é tratado como perfil operacional padrão.
+    return 'vendedor';
 }
 
 function ensure_caixa_schema($conn) {
@@ -118,6 +120,7 @@ if ($method === 'POST' && $action === 'login') {
 
     if ($row = $result->fetch_assoc()) {
         if (verify_password($password, $row['senha'])) {
+            $papelNormalizado = normalize_usuario_role($row['papel'] ?? 'vendedor');
             $ip = $_SERVER['REMOTE_ADDR'] ?? null;
             $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
             if (!$stmtSessao) {
@@ -134,7 +137,7 @@ if ($method === 'POST' && $action === 'login') {
 
             $_SESSION['usuario_id'] = $row['id_usuario'];
             $_SESSION['username'] = $row['login'];
-            $_SESSION['tipo'] = $row['papel'];
+            $_SESSION['tipo'] = $papelNormalizado;
             $_SESSION['caixa_sessao_id'] = $sessaoCaixaId;
 
             echo json_encode([
@@ -145,7 +148,7 @@ if ($method === 'POST' && $action === 'login') {
                     'id' => (int)$row['id_usuario'],
                     'username' => $row['login'],
                     'nome' => $row['nome'],
-                    'tipo' => $row['papel'],
+                    'tipo' => $papelNormalizado,
                     'email' => null
                 ]
             ]);
@@ -180,7 +183,7 @@ if ($method === 'POST' && $action === 'criar_usuario') {
     $login = trim($data['login'] ?? '');
     $senha = (string)($data['senha'] ?? '');
     $nome = trim($data['nome'] ?? '');
-    $papel = trim($data['papel'] ?? 'atendente');
+    $papel = trim($data['papel'] ?? 'vendedor');
     $email = trim((string)($data['email'] ?? ''));
 
     if ($login === '' || $senha === '' || $nome === '') {
@@ -279,7 +282,7 @@ if ($method === 'POST' && $action === 'editar_usuario') {
     $login = trim($data['login'] ?? '');
     $senha = (string)($data['senha'] ?? '');
     $nome = trim($data['nome'] ?? '');
-    $papel = normalize_usuario_role($data['papel'] ?? 'atendente');
+    $papel = normalize_usuario_role($data['papel'] ?? 'vendedor');
     $email = trim((string)($data['email'] ?? ''));
 
     if ($id <= 0) {
@@ -419,7 +422,7 @@ if ($method === 'GET' && $action === 'list_usuarios') {
                 'username' => $row['username'],
                 'nome' => $row['nome'],
                 'email' => $row['email'],
-                'tipo' => $row['tipo']
+                'tipo' => normalize_usuario_role($row['tipo'] ?? 'vendedor')
             ];
         }
     }
@@ -471,9 +474,9 @@ if ($method === 'POST' && $action === 'verificar_senha_admin') {
     $senhaCol = $selectMap['senha'];
     $papelCol = $selectMap['papel'];
     
-    // Buscar usuário admin ou administrador
+    // Buscar usuário com perfil administrativo (inclui valores legados)
     $sql = sprintf(
-        'SELECT %s FROM usuarios WHERE %s IN ("admin", "administrador") LIMIT 1',
+        'SELECT %s FROM usuarios WHERE LOWER(%s) IN ("admin", "administrador", "gestor") LIMIT 1',
         $senhaCol,
         $papelCol
     );

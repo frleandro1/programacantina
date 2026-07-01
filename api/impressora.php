@@ -264,8 +264,37 @@ if ($action === 'enfileirar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         responder(false, 'Falha ao enfileirar cupom para impressão', null, 500);
     }
 
+    // Tenta garantir worker ativo para consumir a fila automaticamente.
+    $projectDir = realpath(__DIR__ . '/..');
+    $workerPath = $projectDir . '\\scripts\\setup\\print-worker.ps1';
+    $workerInfo = ['tentou' => false, 'iniciado' => false, 'detalhe' => ''];
+
+    if (file_exists($workerPath)) {
+        $workerInfo['tentou'] = true;
+        $wp = str_replace('"', '\\"', $workerPath);
+        $pd = str_replace('"', '\\"', $projectDir);
+        $createTask = 'schtasks /create /f /tn "CantinaPrintWorker" /tr "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \\"' . $wp . '\\" -ProjectDir \\"' . $pd . '\\"" /sc ONCE /st 00:00 /it 2>&1';
+        $runTask = 'schtasks /run /tn "CantinaPrintWorker" 2>&1';
+        $outCreate = executar_cmd($createTask);
+        $outRun = executar_cmd($runTask);
+        $workerInfo['detalhe'] = trim($outCreate . ' | ' . $outRun);
+
+        $workerInfo['iniciado'] = (
+            stripos($outRun, 'SUCCESS') !== false ||
+            stripos($outRun, 'ÊXITO') !== false ||
+            stripos($outRun, 'com êxito') !== false ||
+            stripos($outCreate, 'SUCCESS') !== false ||
+            stripos($outCreate, 'criada') !== false ||
+            stripos($outCreate, 'updated') !== false ||
+            stripos($outCreate, 'atualizada') !== false
+        );
+    } else {
+        $workerInfo['detalhe'] = 'script worker ausente';
+    }
+
     responder(true, 'Cupom enfileirado para impressão local', [
-        'arquivo' => basename($arquivo)
+        'arquivo' => basename($arquivo),
+        'worker' => $workerInfo
     ]);
 }
 

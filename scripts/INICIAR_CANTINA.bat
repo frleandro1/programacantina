@@ -12,7 +12,7 @@ echo ========================================
 echo.
 
 REM --- Apache ---
-tasklist /FI "IMAGENAME eq httpd.exe" 2^>nul ^| find /I "httpd.exe" ^>nul
+tasklist /FI "IMAGENAME eq httpd.exe" | findstr /I /C:"httpd.exe" >nul 2>&1
 if %errorlevel% neq 0 (
     echo Iniciando Apache...
     start "Apache" /min "%XAMPP_DIR%\apache\bin\httpd.exe"
@@ -21,24 +21,53 @@ if %errorlevel% neq 0 (
 )
 
 REM --- MySQL ---
-tasklist /FI "IMAGENAME eq mysqld.exe" 2^>nul ^| find /I "mysqld.exe" ^>nul
+tasklist /FI "IMAGENAME eq mysqld.exe" | findstr /I /C:"mysqld.exe" >nul 2>&1
 if %errorlevel% neq 0 (
     echo Iniciando MySQL...
-    start "MySQL" /min "%XAMPP_DIR%\mysql\bin\mysqld.exe" --defaults-file="%XAMPP_DIR%\mysql\bin\my.ini"
+    if exist "%XAMPP_DIR%\mysql_start.bat" (
+        start "MySQL" /min cmd /c ""%XAMPP_DIR%\mysql_start.bat""
+    ) else (
+        start "MySQL" /min "%XAMPP_DIR%\mysql\bin\mysqld.exe" --defaults-file="%XAMPP_DIR%\mysql\bin\my.ini"
+    )
 ) else (
     echo MySQL ja rodando.
 )
+
+echo Verificando MySQL na porta 3306...
+set "MYSQL_READY=0"
+set "MYSQL_TRY=0"
+:WAIT_MYSQL
+set /a MYSQL_TRY+=1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try{$c=New-Object Net.Sockets.TcpClient('127.0.0.1',3306);$c.Close();exit 0}catch{exit 1}" >nul 2>&1
+if !errorlevel! equ 0 (
+    set "MYSQL_READY=1"
+    goto MYSQL_OK
+)
+if !MYSQL_TRY! geq 15 goto MYSQL_FAIL
+echo   Aguardando MySQL !MYSQL_TRY!/15...
+ping -n 3 127.0.0.1 >nul
+goto WAIT_MYSQL
+
+:MYSQL_OK
+echo MySQL online.
+goto CONTINUE_START
+
+:MYSQL_FAIL
+echo [AVISO] MySQL nao respondeu na porta 3306.
+echo [AVISO] O sistema pode abrir, mas sem banco de dados.
+
+:CONTINUE_START
 
 echo.
 echo Aguardando sistema... (pode levar ate 60 segundos)
 set "TRY=0"
 :WAIT
 set /a TRY+=1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try{$r=Invoke-WebRequest -Uri '%HEALTH%' -UseBasicParsing -TimeoutSec 3;$j=$r.Content|ConvertFrom-Json;if($j.sucesso){exit 0}else{exit 1}}catch{exit 1}" ^>nul 2^>^&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try{$r=Invoke-WebRequest -Uri '%HEALTH%' -UseBasicParsing -TimeoutSec 3;$j=$r.Content|ConvertFrom-Json;if($j.sucesso){exit 0}else{exit 1}}catch{exit 1}" >nul 2>&1
 if !errorlevel! equ 0 goto ONLINE
 if !TRY! geq 30 goto ABRE
 echo   Tentativa !TRY!/30...
-timeout /t 2 /nobreak ^>nul
+ping -n 3 127.0.0.1 >nul
 goto WAIT
 
 :ONLINE
@@ -63,5 +92,9 @@ echo.
 echo ========================================
 echo   Sistema iniciado! Nao feche esta janela.
 echo ========================================
-pause ^>nul
+if "%MYSQL_READY%"=="0" (
+    echo.
+    echo [DICA] Abra o XAMPP Control Panel e inicie o MySQL manualmente.
+)
+pause >nul
 endlocal

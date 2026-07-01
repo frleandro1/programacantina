@@ -23,13 +23,21 @@
   Redirecionando...
 
   <script>
+    function normalizarTipoUsuario(tipo) {
+      const t = String(tipo || '').toLowerCase();
+      if (t === 'admin' || t === 'administrador' || t === 'gestor') return 'admin';
+      return 'vendedor';
+    }
+
     // Verificar se o usuário já está logado
     const token = localStorage.getItem('token');
-    const userType = localStorage.getItem('userType');
+    const userTypeRaw = localStorage.getItem('userType');
+    const userType = normalizarTipoUsuario(userTypeRaw);
 
     if (token && userType) {
+      localStorage.setItem('userType', userType);
       // Usuário já está logado, redirecionar para dashboard apropriado
-      if (userType.toLowerCase() === 'gestor' || userType.toLowerCase() === 'admin' || userType.toLowerCase() === 'administrador') {
+      if (userType === 'admin') {
         window.location.href = 'admin.html';
       } else {
         window.location.href = 'vendas.html';

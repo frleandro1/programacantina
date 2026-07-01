@@ -1024,10 +1024,8 @@ input[type=\"color\"] {
           <div class="form-group">
             <label for="usuarioPapel">Tipo de Usuário</label>
             <select id="usuarioPapel">
-              <option value="atendente">Atendente</option>
-              <option value="producao">Produção</option>
-              <option value="gestor">Gestor</option>
-              <option value="administrador">Administrador</option>
+              <option value="vendedor">Vendedor</option>
+              <option value="admin">Administrador</option>
             </select>
           </div>
         </div>
@@ -1329,6 +1327,18 @@ let produtosCache = [];
 let produtoImagemPreparada = null;
 let produtoEditandoId = null;
 
+function normalizarTipoUsuario(tipo) {
+  const t = String(tipo || '').toLowerCase();
+  if (t === 'admin' || t === 'administrador' || t === 'gestor') {
+    return 'admin';
+  }
+  return 'vendedor';
+}
+
+function rotuloTipoUsuario(tipo) {
+  return normalizarTipoUsuario(tipo) === 'admin' ? 'Administrador' : 'Vendedor';
+}
+
 const PRODUTO_IMAGEM_LARGURA = 960;
 const PRODUTO_IMAGEM_ALTURA = 720;
 const PRODUTO_IMAGEM_QUALIDADE = 0.72;
@@ -1423,7 +1433,7 @@ function editarUsuario(id) {
     return;
   }
 
-  const tipoUsuario = usuario.tipo === 'admin' ? 'administrador' : (usuario.tipo || 'atendente');
+  const tipoUsuario = normalizarTipoUsuario(usuario.tipo);
 
   usuarioEditandoId = id;
   usuarioFormTitulo.textContent = 'Editar Funcionário';
@@ -1458,7 +1468,7 @@ async function carregarUsuarios() {
           <td>${u.username}</td>
           <td>${u.nome || '-'}</td>
           <td>${u.email || '-'}</td>
-          <td><span style="background: #1e5ba8; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${u.tipo}</span></td>
+          <td><span style="background: #1e5ba8; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${rotuloTipoUsuario(u.tipo)}</span></td>
           <td>
             <div class="action-buttons">
               <button class="btn-edit" onclick="editarUsuario(${u.id})">Editar</button>
@@ -2018,8 +2028,10 @@ if (!localStorage.getItem('token')) {
 }
 
 // Verificar se é admin
-const userType = localStorage.getItem('userType');
-if (userType && userType !== 'gestor' && userType !== 'admin' && userType !== 'administrador') {
+const userTypeRaw = localStorage.getItem('userType');
+const userType = normalizarTipoUsuario(userTypeRaw);
+localStorage.setItem('userType', userType);
+if (userType !== 'admin') {
   // Se não for admin, redirecionar para vendas
   window.location.href = 'vendas.html';
 }

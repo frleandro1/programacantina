@@ -164,6 +164,24 @@
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
+        .remember-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: -6px 0 16px;
+            color: #444;
+            font-size: 13px;
+        }
+        .remember-wrap input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+            cursor: pointer;
+        }
+        .remember-wrap label {
+            cursor: pointer;
+            user-select: none;
+        }
         .btn {
             width: 100%;
             padding: 14px;
@@ -343,6 +361,10 @@
                         <label for="password">Senha</label>
                         <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password" required>
                     </div>
+                    <div class="remember-wrap">
+                        <input type="checkbox" id="rememberPassword">
+                        <label for="rememberPassword">Lembrar senha neste computador</label>
+                    </div>
                     <button type="submit" class="btn" id="btnLogin">Entrar</button>
                 </form>
 
@@ -356,6 +378,70 @@
 
     <script>
         let tipoAtual = null;
+        const LEMBRAR_LOGIN_KEY = 'cantinaLembrarLogin';
+        const LEMBRAR_LOGIN_DIAS = 30;
+
+        function carregarLembrarLogin() {
+            try {
+                const bruto = localStorage.getItem(LEMBRAR_LOGIN_KEY);
+                if (!bruto) return null;
+                const data = JSON.parse(bruto);
+                if (!data || typeof data !== 'object') return null;
+                if (data.remember === false) return null;
+                if (!data.username || !data.password) return null;
+                if (data.salvoEm) {
+                    const salvoEm = new Date(data.salvoEm).getTime();
+                    const limite = Date.now() - (LEMBRAR_LOGIN_DIAS * 24 * 60 * 60 * 1000);
+                    if (!Number.isFinite(salvoEm) || salvoEm < limite) {
+                        return null;
+                    }
+                }
+                return data;
+            } catch (err) {
+                return null;
+            }
+        }
+            function normalizarTipoUsuario(tipo) {
+                const t = String(tipo || '').toLowerCase();
+                if (t === 'admin' || t === 'administrador' || t === 'gestor') return 'admin';
+                return 'vendedor';
+            }
+
+        function salvarLembrarLogin(payload) {
+            localStorage.setItem(LEMBRAR_LOGIN_KEY, JSON.stringify(payload));
+        }
+
+        function limparLembrarLogin() {
+            localStorage.removeItem(LEMBRAR_LOGIN_KEY);
+        }
+
+        function aplicarAutoLoginSalvo() {
+            const dados = carregarLembrarLogin();
+            if (!dados) return;
+
+            const tipo = normalizarTipoUsuario(dados.tipo || 'vendedor');
+            selecionarTipo(tipo);
+            document.getElementById('username').value = dados.username || '';
+            document.getElementById('password').value = dados.password || '';
+
+            const chk = document.getElementById('rememberPassword');
+            if (chk) chk.checked = true;
+        }
+
+        function aplicarCredenciaisSalvasNoFormulario() {
+            const dados = carregarLembrarLogin();
+            const chk = document.getElementById('rememberPassword');
+            if (!chk) return;
+
+            if (!dados) {
+                chk.checked = false;
+                return;
+            }
+
+            chk.checked = true;
+            document.getElementById('username').value = dados.username || '';
+            document.getElementById('password').value = dados.password || '';
+        }
 
         function selecionarTipo(tipo) {
             tipoAtual = tipo;
@@ -384,8 +470,16 @@
                 document.getElementById('password').value = '';
             }
 
+            aplicarCredenciaisSalvasNoFormulario();
+
             testarConexao();
         }
+
+        document.getElementById('rememberPassword').addEventListener('change', (e) => {
+            if (!e.target.checked) {
+                limparLembrarLogin();
+            }
+        });
 
         function voltarMenu() {
             tipoAtual = null;
@@ -496,6 +590,7 @@
             const errorMsg = document.getElementById('errorMsg');
             const successMsg = document.getElementById('successMsg');
             const btnLogin = document.getElementById('btnLogin');
+            const rememberPassword = document.getElementById('rememberPassword');
 
             if (!username || !password) {
                 errorMsg.textContent = '❌ Preencha todos os campos';
@@ -539,17 +634,30 @@
                     successMsg.textContent = '✅ Login realizado com sucesso! Redirecionando...';
                     successMsg.style.display = 'block';
 
+                    if (rememberPassword && rememberPassword.checked) {
+                        salvarLembrarLogin({
+                            username,
+                            password,
+                            tipo: normalizarTipoUsuario(data.usuario?.tipo || tipoAtual || 'vendedor'),
+                            remember: true,
+                            salvoEm: new Date().toISOString()
+                        });
+                    } else {
+                        limparLembrarLogin();
+                    }
+
                     localStorage.setItem('usuario', JSON.stringify(data.usuario));
                     localStorage.setItem('token', data.token || 'temp-token-' + Date.now());
                     localStorage.setItem('username', username);
-                    localStorage.setItem('userType', data.usuario?.tipo || tipoAtual);
+                        const tipoLogado = normalizarTipoUsuario(data.usuario?.tipo || tipoAtual);
+                        localStorage.setItem('userType', tipoLogado);
                     if (data.sessao_caixa_id) {
                         localStorage.setItem('sessaoCaixaId', String(data.sessao_caixa_id));
                         localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
                     }
 
                     setTimeout(() => {
-                        if (tipoAtual === 'admin') {
+                            if (tipoLogado === 'admin') {
                             window.location.href = 'admin.html';
                         } else {
                             window.location.href = 'vendas.html';
@@ -568,6 +676,10 @@
                 btnLogin.disabled = false;
                 btnLogin.textContent = 'Entrar';
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            aplicarAutoLoginSalvo();
         });
     </script>
 </body>

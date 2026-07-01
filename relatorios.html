@@ -308,6 +308,7 @@ tbody tr:hover {
         <label>Data Início: <input type="date" id="inicioVendas"></label>
         <label>Data Fim: <input type="date" id="fimVendas"></label>
         <button class="btn btn-primary" onclick="loadResumoVendas()">Filtrar</button>
+        <button class="btn" onclick="imprimirResumoVendasTermica()">Imprimir Térmica</button>
         <button class="btn" onclick="exportarVendasCSV()">Exportar CSV</button>
       </div>
       <canvas id="chartVendas" width="400" height="200"></canvas>
@@ -330,12 +331,12 @@ tbody tr:hover {
         <label>Data Fim: <input type="date" id="fimProducao"></label>
         <label>Produto: <select id="filtroProducao"><option value="">Todos</option></select></label>
         <button class="btn btn-primary" onclick="loadResumoProducao()">Filtrar</button>
-        <button class="btn" onclick="exportarProducaoCSV()">Exportar CSV</button>
+        <button class="btn" onclick="imprimirProducaoTermica()">Imprimir Térmica</button>
       </div>
       <canvas id="chartProducao" width="400" height="200"></canvas>
       <table>
         <thead>
-          <tr><th>Produto</th><th>Quantidade Vendida</th></tr>
+          <tr><th>Produto</th><th>Quantidade Vendida</th><th>Valor Total</th></tr>
         </thead>
         <tbody id="tbResumoP"></tbody>
       </table>
@@ -353,6 +354,7 @@ tbody tr:hover {
         <label>Produto: <select id="filtroProdutoDetalhes"><option value="">Todos</option></select></label>
         <label>Atendente: <select id="filtroAtendente"><option value="">Todos</option></select></label>
         <button class="btn btn-primary" onclick="loadResumoDetalhes()">Filtrar</button>
+        <button class="btn" onclick="imprimirDetalhesTermica()">Imprimir Térmica</button>
         <button class="btn" onclick="exportarDetalhesCSV()">Exportar CSV</button>
       </div>
       <table>
@@ -415,6 +417,7 @@ tbody tr:hover {
         <label>Data Fim: <input type="date" id="fimCaixa"></label>
         <label>Atendente: <select id="filtroUsuarioCaixa"><option value="">Todos</option></select></label>
         <button class="btn btn-primary" onclick="loadRelatorioCaixa()">Filtrar</button>
+        <button class="btn" onclick="imprimirCaixaTermica()">Imprimir Térmica</button>
         <button class="btn" onclick="exportarCaixaCSV()">Exportar CSV</button>
       </div>
       <table>
@@ -461,7 +464,13 @@ window.exportarProducaoCSV = window.exportarProducaoCSV || function() {
 window.exportarDetalhesCSV = window.exportarDetalhesCSV || function() {
   alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
 };
+window.imprimirDetalhesTermica = window.imprimirDetalhesTermica || function() {
+  alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
+};
 window.exportarCaixaCSV = window.exportarCaixaCSV || function() {
+  alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
+};
+window.imprimirCaixaTermica = window.imprimirCaixaTermica || function() {
   alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
 };
 
@@ -580,6 +589,6 @@ window.addEventListener('load', () => {
   mostrarModalAuth();
 });
 </script>
-<script src="js/relatorios.js?v=20260311"></script>
+<script src="js/relatorios.js?v=20260630_termica2"></script>
 </body>
 </html>

@@ -290,10 +290,21 @@ body {
 let ultimasVendas = [];
 let ultimoCheck = 0;
 
+function obterClasseEstoque(estoqueAtual) {
+  if (estoqueAtual <= 0) return 'danger';
+  if (estoqueAtual <= 5) return 'warning';
+  return '';
+}
+
 async function verificarBaixas() {
   try {
-    const res = await fetch('api/vendas.php?action=listar');
-    const data = await res.json();
+    const [resVendas, resProdutos] = await Promise.all([
+      fetch('api/vendas.php?action=listar', { cache: 'no-store' }),
+      fetch('api/produtos.php?action=listar', { cache: 'no-store' })
+    ]);
+
+    const data = await resVendas.json();
+    const dataProdutos = await resProdutos.json();
     
     if (!data.sucesso) {
       console.error('Erro ao carregar vendas:', data.mensagem);
@@ -301,16 +312,23 @@ async function verificarBaixas() {
     }
     
     const vendas = data.dados || [];
+    const produtos = dataProdutos.dados || dataProdutos.produtos || [];
+    const estoquePorNome = new Map(
+      produtos.map((p) => [String(p.nome || '').trim().toLowerCase(), Number(p.estoque || p.estoque_atual || 0)])
+    );
     
     // Processar vendas para exibição
     const vendasProcessadas = vendas.slice(0, 50).map(v => {
       const dataVenda = new Date(v.data_venda || v.data_hora);
+      const nomeProduto = v.produto_nome || 'Produto desconhecido';
+      const estoqueAtual = estoquePorNome.get(String(nomeProduto).trim().toLowerCase()) ?? 0;
       return {
         id: v.id || v.numero_pedido,
-        nome: v.produto_nome || 'Produto desconhecido',
+        nome: nomeProduto,
         quantidade: v.quantidade || 0,
         preco: v.preco_unitario || 0,
         total: v.total || (v.quantidade * v.preco_unitario),
+        estoqueAtual,
         horario: dataVenda.toLocaleTimeString('pt-BR'),
         data: dataVenda.toLocaleDateString('pt-BR'),
         timestamp: dataVenda.getTime(),
@@ -344,10 +362,10 @@ function renderizarMonitor() {
   }
   
   grid.innerHTML = ultimasVendas.map((venda, idx) => {
-    const classe = venda.novo ? 'novo' : '';
+    const classes = [venda.novo ? 'novo' : '', obterClasseEstoque(venda.estoqueAtual)].filter(Boolean).join(' ');
     
     return `
-      <div class="monitor-card ${classe}">
+      <div class="monitor-card ${classes}">
         <div class="produto-nome">${venda.nome}</div>
         
         <div class="produto-info">
@@ -365,6 +383,10 @@ function renderizarMonitor() {
           <div>
             <div class="info-label">Total da Venda</div>
             <div style="font-size: 20px; color: #28a745; font-weight: bold;">R$ ${parseFloat(venda.total).toFixed(2)}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="info-label">Estoque Atual</div>
+            <div class="info-value">${venda.estoqueAtual}</div>
           </div>
         </div>
         
@@ -385,8 +407,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   verificarBaixas();
   renderizarMonitor();
   
-  // Verificar a cada 5 minutos (300 segundos)
-  setInterval(verificarBaixas, 300000);
+  // Fallback de atualização periódica
+  setInterval(() => {
+    if (document.hidden) return;
+    verificarBaixas();
+  }, 15000);
   
   // Atualizar horário a cada segundo
   setInterval(atualizarHorario, 1000);

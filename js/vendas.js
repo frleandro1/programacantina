@@ -7,6 +7,7 @@ let _impressoraLargura = '80';   // largura em mm para impressão dedicada
 let _impressoraAutoprint = false; // impressão automática ao exibir o cupom
 let _impressoraFonte = 9;         // tamanho da fonte em pt
 let _printLock = false;           // evita duplo disparo de impressão
+const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cantina-sync') : null;
 let _cupomCustomizacoes = {       // customizações do cupom (carregadas da API)
   nomeCantina: 'Cantina IBFC',
   vendedor: '',
@@ -336,6 +337,18 @@ async function finalizarVenda() {
     console.log('Resposta da venda:', data);
     
     if (data.sucesso) {
+      // Dispara sincronização imediatamente ao confirmar a venda,
+      // antes de abrir o fluxo visual do cupom.
+      try {
+        const now = Date.now();
+        localStorage.setItem('cantina:estoqueAtualizadoEm', String(now));
+        if (syncChannel) {
+          syncChannel.postMessage({ type: 'estoque-atualizado', at: now });
+        }
+      } catch (syncErr) {
+        console.warn('Falha ao sincronizar atualização de estoque entre abas:', syncErr);
+      }
+
       // Usar o número de venda do dia em vez do ID
       mostrarCupom(data.numero_venda_turno || data.numero_venda || data.id, carrinho);
       aplicarBaixaEstoqueLocal(carrinho);

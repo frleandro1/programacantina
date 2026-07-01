@@ -3,6 +3,8 @@ let produtosFiltrados = [];
 let vendas = [];
 let carregandoVendas = false;
 let atualizacaoIntervalo = null;
+const ESTOQUE_SYNC_KEY = 'cantina:estoqueAtualizadoEm';
+const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cantina-sync') : null;
 
 function formatarMoeda(valor) {
   return new Intl.NumberFormat('pt-BR', {
@@ -19,7 +21,7 @@ async function carregarDados() {
 
 async function carregarProdutos() {
   try {
-    const res = await fetch('api/produtos.php?action=listar');
+    const res = await fetch('api/produtos.php?action=listar&t=' + Date.now(), { cache: 'no-store' });
     const data = await res.json();
     console.log('Resposta produtos:', data);
     
@@ -46,7 +48,7 @@ async function carregarVendas() {
   carregandoVendas = true;
 
   try {
-    const res = await fetch('api/vendas.php?action=listar');
+    const res = await fetch('api/vendas.php?action=listar&t=' + Date.now(), { cache: 'no-store' });
     const data = await res.json();
     
     if (data.sucesso) {
@@ -69,7 +71,7 @@ async function carregarVendas() {
 async function carregarEstatisticasHoje() {
   try {
     const hoje = new Date().toISOString().split('T')[0];
-    const res = await fetch(`api/relatorios.php?action=vendas_resumo&inicio=${hoje}&fim=${hoje}`);
+    const res = await fetch(`api/relatorios.php?action=vendas_resumo&inicio=${hoje}&fim=${hoje}&t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
 
     if (!data.sucesso) {
@@ -95,9 +97,34 @@ function iniciarAtualizacaoTempoReal() {
 
   atualizacaoIntervalo = setInterval(async () => {
     if (document.hidden) return;
+    await carregarProdutos();
     await carregarVendas();
     await carregarEstatisticasHoje();
   }, 5000);
+}
+
+function registrarSincronizacaoEstoque() {
+  const atualizarTudo = async () => {
+    await carregarProdutos();
+    await carregarVendas();
+    await carregarEstatisticasHoje();
+  };
+
+  window.addEventListener('storage', async (event) => {
+    if (event.key !== ESTOQUE_SYNC_KEY) return;
+    await atualizarTudo();
+  });
+
+  if (syncChannel) {
+    syncChannel.addEventListener('message', async (event) => {
+      if (!event || !event.data || event.data.type !== 'estoque-atualizado') return;
+      await atualizarTudo();
+    });
+  }
+
+  window.addEventListener('focus', async () => {
+    await atualizarTudo();
+  });
 }
 
 function atualizarContadores() {
@@ -290,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   carregarDados();
   iniciarAtualizacaoTempoReal();
+  registrarSincronizacaoEstoque();
 
   window.addEventListener('beforeunload', () => {
     if (atualizacaoIntervalo) {

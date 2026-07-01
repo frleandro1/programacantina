@@ -1,5 +1,6 @@
 (function () {
   const moeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const CUPOM_LARGURA = 46;
 
   let chartV = null;
   let chartP = null;
@@ -33,6 +34,235 @@
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function hojeISO() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function limitarLinha(texto, largura = CUPOM_LARGURA) {
+    return String(texto || '').replace(/\r/g, '').replace(/\n/g, ' ').slice(0, Math.max(0, largura));
+  }
+
+  function centralizarLinha(texto, largura = CUPOM_LARGURA) {
+    const base = limitarLinha(texto, largura);
+    const spaces = Math.max(0, Math.floor((largura - base.length) / 2));
+    return (' '.repeat(spaces) + base).slice(0, largura);
+  }
+
+  function montarLinhaDupla(esq, dir, largura = CUPOM_LARGURA) {
+    const direita = limitarLinha(dir, largura);
+    const maxEsq = Math.max(1, largura - direita.length - 1);
+    const esquerda = limitarLinha(esq, maxEsq);
+    const espacos = Math.max(1, largura - esquerda.length - direita.length);
+    return esquerda + ' '.repeat(espacos) + direita;
+  }
+
+  async function chamarApiImpressao(action, textoCupom) {
+    const resp = await fetch(`api/impressora.php?action=${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto: textoCupom, copias: 1 }),
+      cache: 'no-store'
+    });
+
+    const body = await resp.text();
+    let data = null;
+    try {
+      data = body ? JSON.parse(body) : null;
+    } catch (_) {
+      data = null;
+    }
+
+    return {
+      ok: resp.ok && !!data && data.sucesso === true,
+      status: resp.status,
+      mensagem: (data && data.mensagem) ? data.mensagem : `Falha na ação ${action} (HTTP ${resp.status})`
+    };
+  }
+
+  async function imprimirCupomTermico(textoCupom) {
+    const direta = await chamarApiImpressao('imprimir', textoCupom);
+    if (direta.ok) {
+      return { modo: 'direta', mensagem: direta.mensagem };
+    }
+
+    const fila = await chamarApiImpressao('enfileirar', textoCupom);
+    if (fila.ok) {
+      return { modo: 'fila', mensagem: fila.mensagem };
+    }
+
+    throw new Error(`Impressão direta: ${direta.mensagem} | Fila: ${fila.mensagem}`);
+  }
+
+  async function carregarProducaoPorPeriodo(inicio, fim) {
+    const params = [];
+    if (inicio && fim) {
+      params.push(`inicio=${inicio}`);
+      params.push(`fim=${fim}`);
+    }
+    const url = 'api/relatorios.php?action=producao_resumo' + (params.length ? '&' + params.join('&') : '');
+    const data = await fetchJson(url);
+    if (!data.sucesso) {
+      throw new Error(data.mensagem || 'Falha ao carregar produção do período');
+    }
+    return data.dados || [];
+  }
+
+  function montarCupomProducaoLinhas(itens, inicio, fim) {
+    const sep = '='.repeat(CUPOM_LARGURA);
+    const sepSec = '-'.repeat(CUPOM_LARGURA);
+    const dataHora = new Date().toLocaleString('pt-BR');
+    const periodo = inicio === fim ? inicio : `${inicio} a ${fim}`;
+
+    const totalQtd = itens.reduce((acc, item) => acc + Number(item.quantidade || 0), 0);
+    const totalValor = itens.reduce((acc, item) => acc + Number(item.total || 0), 0);
+
+    let cupom = '';
+    cupom += sep + '\n';
+    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('RELATORIO DE PRODUCAO', CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha(`Emitido: ${dataHora}`, CUPOM_LARGURA) + '\n';
+    cupom += sepSec + '\n';
+
+    itens.forEach((item) => {
+      const nome = item.nome || 'Produto sem nome';
+      const qtd = Number(item.quantidade || 0);
+      const valor = Number(item.total || 0);
+      cupom += limitarLinha(nome, CUPOM_LARGURA) + '\n';
+      cupom += montarLinhaDupla(`Qtd: ${qtd}`, `R$ ${valor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+    });
+
+    cupom += sep + '\n';
+    cupom += montarLinhaDupla('TOTAL DE ITENS:', String(totalQtd), CUPOM_LARGURA) + '\n';
+    cupom += montarLinhaDupla('TOTAL GERAL:', `R$ ${totalValor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    return cupom;
+  }
+
+  function montarCupomResumoVendasLinhas(resumoVendas, itensProducao, inicio, fim) {
+    const sep = '='.repeat(CUPOM_LARGURA);
+    const sepSec = '-'.repeat(CUPOM_LARGURA);
+    const dataHora = new Date().toLocaleString('pt-BR');
+    const periodo = inicio === fim ? inicio : `${inicio} a ${fim}`;
+
+    const totalPedidos = resumoVendas.reduce((acc, item) => acc + Number(item.pedidos || 0), 0);
+    const totalVendas = resumoVendas.reduce((acc, item) => acc + Number(item.total || 0), 0);
+    const itensComVenda = itensProducao.filter((item) => Number(item.quantidade || 0) > 0);
+
+    let cupom = '';
+    cupom += sep + '\n';
+    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('RESUMO DE VENDAS', CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha(`Emitido: ${dataHora}`, CUPOM_LARGURA) + '\n';
+    cupom += sepSec + '\n';
+    cupom += montarLinhaDupla('TOTAL PEDIDOS:', String(totalPedidos), CUPOM_LARGURA) + '\n';
+    cupom += montarLinhaDupla('TOTAL VENDAS:', `R$ ${totalVendas.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    cupom += centralizarLinha('PRODUTOS NO PERIODO', CUPOM_LARGURA) + '\n';
+    cupom += sepSec + '\n';
+
+    if (!itensComVenda.length) {
+      cupom += centralizarLinha('SEM VENDAS NO PERIODO', CUPOM_LARGURA) + '\n';
+    } else {
+      itensComVenda.forEach((item) => {
+        const nome = item.nome || 'Produto sem nome';
+        const qtd = Number(item.quantidade || 0);
+        const valor = Number(item.total || 0);
+        cupom += limitarLinha(nome, CUPOM_LARGURA) + '\n';
+        cupom += montarLinhaDupla(`Qtd: ${qtd}`, `R$ ${valor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+      });
+    }
+
+    cupom += sep + '\n';
+    return cupom;
+  }
+
+  function montarCupomDetalhesLinhas(itens, inicio, fim) {
+    const sep = '='.repeat(CUPOM_LARGURA);
+    const sepSec = '-'.repeat(CUPOM_LARGURA);
+    const dataHora = new Date().toLocaleString('pt-BR');
+    const periodo = inicio === fim ? inicio : `${inicio} a ${fim}`;
+
+    const totalQtd = itens.reduce((acc, item) => acc + Number(item.quantidade || 0), 0);
+    const totalValor = itens.reduce((acc, item) => acc + Number(item.subtotal || 0), 0);
+
+    let cupom = '';
+    cupom += sep + '\n';
+    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('DETALHES DE VENDAS', CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha(`Emitido: ${dataHora}`, CUPOM_LARGURA) + '\n';
+    cupom += sepSec + '\n';
+
+    itens.forEach((item) => {
+      const pedido = item.pedido ? `Pedido #${item.pedido}` : 'Pedido';
+      const produto = item.produto || 'Produto sem nome';
+      const atendente = item.atendente || 'N/A';
+      const qtd = Number(item.quantidade || 0);
+      const valor = Number(item.subtotal || 0);
+
+      cupom += limitarLinha(`${pedido} | ${item.data || ''}`, CUPOM_LARGURA) + '\n';
+      cupom += limitarLinha(produto, CUPOM_LARGURA) + '\n';
+      cupom += montarLinhaDupla(`Atend: ${atendente}`, `Qtd: ${qtd}`, CUPOM_LARGURA) + '\n';
+      cupom += montarLinhaDupla('Subtotal:', `R$ ${valor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+      cupom += sepSec + '\n';
+    });
+
+    cupom += montarLinhaDupla('TOTAL ITENS:', String(totalQtd), CUPOM_LARGURA) + '\n';
+    cupom += montarLinhaDupla('TOTAL GERAL:', `R$ ${totalValor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    return cupom;
+  }
+
+  function montarCupomCaixaLinhas(itens, inicio, fim) {
+    const sep = '='.repeat(CUPOM_LARGURA);
+    const sepSec = '-'.repeat(CUPOM_LARGURA);
+    const dataHora = new Date().toLocaleString('pt-BR');
+    const periodo = inicio === fim ? inicio : `${inicio} a ${fim}`;
+
+    const totalSessoes = itens.length;
+    const totalVendas = itens.reduce((acc, item) => acc + Number(item.total_vendas || 0), 0);
+    const totalValor = itens.reduce((acc, item) => acc + Number(item.valor_total || 0), 0);
+
+    let cupom = '';
+    cupom += sep + '\n';
+    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('ABERTURA DE CAIXA', CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha(`Emitido: ${dataHora}`, CUPOM_LARGURA) + '\n';
+    cupom += sepSec + '\n';
+
+    itens.forEach((item) => {
+      const sessao = `Sessao #${item.sessao_id || 0}`;
+      const usuario = item.nome || item.login || 'Usuario';
+      const status = (item.status || '').toLowerCase() === 'aberto' ? 'Aberto' : 'Fechado';
+      const vendas = Number(item.total_vendas || 0);
+      const valor = Number(item.valor_total || 0);
+
+      cupom += limitarLinha(`${sessao} | ${status}`, CUPOM_LARGURA) + '\n';
+      cupom += limitarLinha(`Usuario: ${usuario}`, CUPOM_LARGURA) + '\n';
+      cupom += limitarLinha(`Abertura: ${item.abertura_caixa || '-'}`, CUPOM_LARGURA) + '\n';
+      cupom += limitarLinha(`Fechamento: ${item.fechamento_caixa || '-'}`, CUPOM_LARGURA) + '\n';
+      cupom += montarLinhaDupla(`Vendas: ${vendas}`, `R$ ${valor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+      cupom += sepSec + '\n';
+    });
+
+    cupom += montarLinhaDupla('TOTAL SESSOES:', String(totalSessoes), CUPOM_LARGURA) + '\n';
+    cupom += montarLinhaDupla('TOTAL VENDAS:', String(totalVendas), CUPOM_LARGURA) + '\n';
+    cupom += montarLinhaDupla('VALOR TOTAL:', `R$ ${totalValor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
+    cupom += sep + '\n';
+    return cupom;
   }
 
   function renderChartVendas(dados) {
@@ -176,7 +406,7 @@
     const tbody = document.getElementById('tbResumoP');
     if (tbody) {
       tbody.innerHTML = cacheResumoProducao
-        .map((r) => `<tr><td>${r.nome}</td><td>${r.quantidade}</td></tr>`)
+        .map((r) => `<tr><td>${r.nome}</td><td>${r.quantidade}</td><td>${moeda(r.total)}</td></tr>`)
         .join('');
     }
 
@@ -270,14 +500,112 @@
     downloadCsv('resumo_vendas.csv', toCsv(rows, ['Data', 'Total Vendas', 'Valor Total']));
   }
 
+  async function imprimirResumoVendasTermica() {
+    const inicio = getVal('inicioVendas') || hojeISO();
+    const fim = getVal('fimVendas') || inicio;
+
+    if (!cacheResumoVendas.length) {
+      await loadResumoVendas();
+    }
+
+    const resumo = cacheResumoVendas || [];
+    if (!resumo.length) {
+      alert('Sem dados de vendas para imprimir no período selecionado.');
+      return;
+    }
+
+    try {
+      const producao = await carregarProducaoPorPeriodo(inicio, fim);
+      const cupom = montarCupomResumoVendasLinhas(resumo, producao, inicio, fim);
+      const resultado = await imprimirCupomTermico(cupom);
+      if (resultado.modo === 'fila') {
+        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
+      } else {
+        alert('Resumo de vendas enviado para impressora térmica com sucesso.');
+      }
+    } catch (err) {
+      alert('Falha ao imprimir resumo térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
+    }
+  }
+
   function exportarProducaoCSV() {
     const rows = cacheResumoProducao.map((r) => [r.nome, r.quantidade]);
     downloadCsv('producao_por_produto.csv', toCsv(rows, ['Produto', 'Quantidade Vendida']));
   }
 
+  async function imprimirProducaoTermica() {
+    const inicio = getVal('inicioProducao') || hojeISO();
+    const fim = getVal('fimProducao') || inicio;
+    const produtoId = getVal('filtroProducao');
+
+    if (!cacheResumoProducao.length) {
+      await loadResumoProducao();
+    }
+
+    let itens = cacheResumoProducao
+      .filter((r) => Number(r.quantidade || 0) > 0)
+      .map((r) => ({
+        nome: r.nome,
+        quantidade: Number(r.quantidade || 0),
+        total: Number(r.total || 0),
+        id: Number(r.id || 0)
+      }));
+
+    if (produtoId) {
+      const pid = Number(produtoId);
+      itens = itens.filter((r) => r.id === pid);
+    }
+
+    if (!itens.length) {
+      alert('Nenhum item com venda no período selecionado para imprimir.');
+      return;
+    }
+
+    const cupom = montarCupomProducaoLinhas(itens, inicio, fim);
+
+    try {
+      const resultado = await imprimirCupomTermico(cupom);
+      if (resultado.modo === 'fila') {
+        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
+      } else {
+        alert('Relatório enviado para impressora térmica com sucesso.');
+      }
+    } catch (err) {
+      alert('Falha ao imprimir relatório térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
+    }
+  }
+
   function exportarDetalhesCSV() {
     const rows = cacheDetalhes.map((r) => [r.pedido, r.data, r.atendente || '', r.produto, r.quantidade, Number(r.subtotal || 0).toFixed(2)]);
     downloadCsv('detalhes_vendas.csv', toCsv(rows, ['Numero', 'Data', 'Atendente', 'Produto', 'Qtd', 'Valor']));
+  }
+
+  async function imprimirDetalhesTermica() {
+    const inicio = getVal('inicioDetalhes') || hojeISO();
+    const fim = getVal('fimDetalhes') || inicio;
+
+    if (!cacheDetalhes.length) {
+      await loadResumoDetalhes();
+    }
+
+    const itens = cacheDetalhes || [];
+    if (!itens.length) {
+      alert('Sem dados de detalhes para imprimir no período selecionado.');
+      return;
+    }
+
+    const cupom = montarCupomDetalhesLinhas(itens, inicio, fim);
+
+    try {
+      const resultado = await imprimirCupomTermico(cupom);
+      if (resultado.modo === 'fila') {
+        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
+      } else {
+        alert('Detalhes de vendas enviados para impressora térmica com sucesso.');
+      }
+    } catch (err) {
+      alert('Falha ao imprimir detalhes térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
+    }
   }
 
   function exportarCaixaCSV() {
@@ -291,6 +619,34 @@
       Number(r.valor_total || 0).toFixed(2)
     ]);
     downloadCsv('logins_abertura_caixa.csv', toCsv(rows, ['Sessao', 'Usuario', 'Abertura', 'Fechamento', 'Status', 'Vendas', 'Total']));
+  }
+
+  async function imprimirCaixaTermica() {
+    const inicio = getVal('inicioCaixa') || hojeISO();
+    const fim = getVal('fimCaixa') || inicio;
+
+    if (!cacheCaixa.length) {
+      await loadRelatorioCaixa();
+    }
+
+    const itens = cacheCaixa || [];
+    if (!itens.length) {
+      alert('Sem dados de caixa para imprimir no período selecionado.');
+      return;
+    }
+
+    const cupom = montarCupomCaixaLinhas(itens, inicio, fim);
+
+    try {
+      const resultado = await imprimirCupomTermico(cupom);
+      if (resultado.modo === 'fila') {
+        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
+      } else {
+        alert('Relatório de caixa enviado para impressora térmica com sucesso.');
+      }
+    } catch (err) {
+      alert('Falha ao imprimir caixa térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
+    }
   }
 
   // FUNÇÕES DE CRUD PARA DETALHES DE VENDAS
@@ -420,10 +776,14 @@
   window.loadResumoProducao = loadResumoProducao;
   window.loadResumoDetalhes = loadResumoDetalhes;
   window.loadRelatorioCaixa = loadRelatorioCaixa;
+  window.imprimirResumoVendasTermica = imprimirResumoVendasTermica;
   window.exportarVendasCSV = exportarVendasCSV;
   window.exportarProducaoCSV = exportarProducaoCSV;
+  window.imprimirProducaoTermica = imprimirProducaoTermica;
   window.exportarDetalhesCSV = exportarDetalhesCSV;
+  window.imprimirDetalhesTermica = imprimirDetalhesTermica;
   window.exportarCaixaCSV = exportarCaixaCSV;
+  window.imprimirCaixaTermica = imprimirCaixaTermica;
 
   document.addEventListener('DOMContentLoaded', () => {
     initFiltros();
