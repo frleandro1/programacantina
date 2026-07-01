@@ -1008,11 +1008,11 @@ input[type=\"color\"] {
         <div class="form-row">
           <div class="form-group">
             <label for="usuarioLogin">Login *</label>
-            <input type="text" id="usuarioLogin" required placeholder="Ex: joao.silva">
+            <input type="text" id="usuarioLogin" required placeholder="Ex: joao.silva" autocomplete="username">
           </div>
           <div class="form-group">
             <label for="usuarioSenha" id="usuarioSenhaLabel">Senha *</label>
-            <input type="password" id="usuarioSenha" required placeholder="Mínimo 6 caracteres">
+            <input type="password" id="usuarioSenha" required placeholder="Mínimo 6 caracteres" autocomplete="new-password">
           </div>
         </div>
         
@@ -1488,7 +1488,9 @@ async function carregarUsuarios() {
 }
 
 async function deletarUsuario(id) {
-  if (!confirm('Tem certeza que deseja deletar este usuário?')) return;
+  // Evita bloquear o handler de clique com confirm síncrono no mesmo frame.
+  await new Promise(resolve => setTimeout(resolve, 0));
+  if (!window.confirm('Tem certeza que deseja deletar este usuário?')) return;
   
   try {
     const response = await fetch(API_URL + '/auth.php?action=deletar_usuario', {
@@ -1499,11 +1501,12 @@ async function deletarUsuario(id) {
     
     const result = await response.json();
     if (result.sucesso) {
+      usuariosCache = usuariosCache.filter(u => Number(u.id) !== Number(id));
       if (usuarioEditandoId === id) {
         limparFormularioUsuario();
       }
-      carregarUsuarios();
-      mostrarMensagem('usuarioMessage', '✓ Usuário deletado com sucesso!', 'success');
+      await carregarUsuarios();
+      mostrarMensagem('usuarioMessage', result.mensagem || '✓ Usuário deletado com sucesso!', 'success');
     } else {
       mostrarMensagem('usuarioMessage', result.mensagem || 'Erro ao deletar usuário', 'error');
     }

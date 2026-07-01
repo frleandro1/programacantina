@@ -1145,7 +1145,7 @@ body {
   </button>
   <nav class="nav" id="navMenu" onclick="fecharNavFora(event)">
     <div class="nav-menu">
-      <a href="vendas.html" class="active">Vendas</a>
+      <!--<a href="vendas.html" class="active">Vendas</a>-->
       <a href="dashboard.html" onclick="return abrirJanelaProducao(event)">Produção</a>
       <a href="login-menu.html" onclick="if (window.history.length > 1) { window.history.back(); return false; }">Voltar</a>
       <a href="login-menu.html" onclick="logout()">Sair</a>
@@ -1391,12 +1391,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminLink = document.querySelector('a[href="admin.html"]');
     if (adminLink) {
       adminLink.style.display = 'none';
-    }
-    
-    // Também esconder link de Produção/Dashboard se for vendedor
-    const dashboardLink = document.querySelector('a[href="dashboard.html"]');
-    if (dashboardLink) {
-      dashboardLink.style.display = 'none';
     }
   }
 });

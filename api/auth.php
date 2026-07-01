@@ -403,13 +403,20 @@ if ($method === 'GET' && $action === 'verificar') {
 
 if ($method === 'GET' && $action === 'list_usuarios') {
     $selectMap = get_usuario_select_map($conn);
+    $filters = [];
+    if (has_usuario_column($conn, 'status')) {
+        $filters[] = "LOWER(COALESCE(status, 'ativo')) <> 'inativo'";
+    }
+    $filters[] = sprintf("LOWER(%s) NOT LIKE '__inativo__%%'", $selectMap['login']);
+    $whereClause = ' WHERE ' . implode(' AND ', $filters);
     $sql = sprintf(
-        'SELECT %s AS id, %s AS username, %s AS nome, %s AS email, %s AS tipo FROM usuarios ORDER BY %s',
+        'SELECT %s AS id, %s AS username, %s AS nome, %s AS email, %s AS tipo FROM usuarios%s ORDER BY %s',
         $selectMap['id'],
         $selectMap['login'],
         $selectMap['nome'] ?: 'NULL',
         $selectMap['email'] ?: 'NULL',
         $selectMap['papel'],
+        $whereClause,
         $selectMap['login']
     );
     $result = $conn->query($sql);
@@ -437,24 +444,147 @@ if ($method === 'GET' && $action === 'list_usuarios') {
 if ($method === 'POST' && $action === 'deletar_usuario') {
     $data = json_decode(file_get_contents('php://input'), true) ?? [];
     $id = (int)($data['id'] ?? 0);
-    
+
     if ($id <= 0) {
         echo json_encode(['sucesso' => false, 'mensagem' => 'ID inválido']);
         exit;
     }
-    
-    $idColumn = get_usuario_select_map($conn)['id'];
-    $stmt = $conn->prepare("DELETE FROM usuarios WHERE {$idColumn} = ?");
-    if (!$stmt) {
-        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na preparação: ' . $conn->error]);
+
+    // Impedir deletar o próprio usuário logado
+    if (isset($_SESSION['usuario_id']) && (int)$_SESSION['usuario_id'] === $id) {
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Você não pode deletar sua própria conta']);
         exit;
     }
-    
-    $stmt->bind_param('i', $id);
-    if ($stmt->execute()) {
-        echo json_encode(['sucesso' => true, 'mensagem' => 'Usuário deletado com sucesso']);
-    } else {
-        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao deletar: ' . $stmt->error]);
+
+    $selectMap = get_usuario_select_map($conn);
+    $idColumn = $selectMap['id'];
+    $loginColumn = $selectMap['login'];
+    $papelColumn = $selectMap['papel'];
+    $hasStatusColumn = has_usuario_column($conn, 'status');
+
+    $deactivateUser = static function($conn, $idColumn, $loginColumn, $hasStatusColumn, $id) {
+        $stmtInativar = null;
+        if ($hasStatusColumn) {
+            $stmtInativar = $conn->prepare("UPDATE usuarios SET status = 'inativo' WHERE {$idColumn} = ?");
+        } else {
+            // Fallback para banco legado sem coluna status: renomeia login para ocultar na listagem e bloquear login.
+            $inactiveLogin = '__inativo__' . $id . '__' . time();
+            $stmtInativar = $conn->prepare("UPDATE usuarios SET {$loginColumn} = ? WHERE {$idColumn} = ?");
+            if ($stmtInativar) {
+                $stmtInativar->bind_param('si', $inactiveLogin, $id);
+            }
+        }
+
+        if (!$stmtInativar) {
+            return [
+                'sucesso' => false,
+                'mensagem' => 'Erro ao desativar usuário: ' . $conn->error
+            ];
+        }
+
+        if ($hasStatusColumn) {
+            $stmtInativar->bind_param('i', $id);
+        }
+        $ok = $stmtInativar->execute();
+        $affected = $stmtInativar->affected_rows;
+        $stmtErrno = (int)$stmtInativar->errno;
+        $stmtError = $stmtInativar->error;
+        $stmtInativar->close();
+
+        if (!$ok && $stmtErrno !== 0) {
+            return [
+                'sucesso' => false,
+                'mensagem' => 'Erro ao desativar usuário: ' . $stmtError
+            ];
+        }
+
+        if ($affected <= 0) {
+            return [
+                'sucesso' => false,
+                'mensagem' => 'Usuário não encontrado'
+            ];
+        }
+
+        return [
+            'sucesso' => true,
+            'mensagem' => 'Usuário possui registros vinculados e foi desativado com sucesso'
+        ];
+    };
+
+    // Impedir deletar o último admin
+    $stmtAdminCount = $conn->prepare("SELECT COUNT(*) FROM usuarios WHERE LOWER({$papelColumn}) IN ('admin','administrador','gestor')");
+    if ($stmtAdminCount) {
+        $stmtAdminCount->execute();
+        $stmtAdminCount->bind_result($totalAdmins);
+        $stmtAdminCount->fetch();
+        $stmtAdminCount->close();
+
+        if ($totalAdmins <= 1) {
+            // Verificar se o usuário a deletar é admin
+            $stmtIsAdmin = $conn->prepare("SELECT COUNT(*) FROM usuarios WHERE {$idColumn} = ? AND LOWER({$papelColumn}) IN ('admin','administrador','gestor')");
+            if ($stmtIsAdmin) {
+                $stmtIsAdmin->bind_param('i', $id);
+                $stmtIsAdmin->execute();
+                $stmtIsAdmin->bind_result($isAdmin);
+                $stmtIsAdmin->fetch();
+                $stmtIsAdmin->close();
+                if ($isAdmin > 0) {
+                    echo json_encode(['sucesso' => false, 'mensagem' => 'Não é possível deletar o único administrador do sistema']);
+                    exit;
+                }
+            }
+        }
+    }
+
+    $stmt = null;
+    try {
+        $stmt = $conn->prepare("DELETE FROM usuarios WHERE {$idColumn} = ?");
+        if (!$stmt) {
+            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro na preparação: ' . $conn->error]);
+            exit;
+        }
+
+        $stmt->bind_param('i', $id);
+        $executed = $stmt->execute();
+
+        if (!$executed) {
+            $stmtErrno = (int)$stmt->errno;
+            if ($stmtErrno === 1451) {
+                $fallback = $deactivateUser($conn, $idColumn, $loginColumn, $hasStatusColumn, $id);
+                echo json_encode($fallback);
+                exit;
+            }
+
+            if ($stmtErrno === 1451) {
+                echo json_encode(['sucesso' => false, 'mensagem' => 'Não é possível deletar este usuário pois ele possui vendas ou registros associados no sistema']);
+            } else {
+                echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao deletar: ' . $stmt->error]);
+            }
+            exit;
+        }
+
+        if ($stmt->affected_rows === 0) {
+            echo json_encode(['sucesso' => false, 'mensagem' => 'Usuário não encontrado']);
+        } else {
+            echo json_encode(['sucesso' => true, 'mensagem' => 'Usuário deletado com sucesso']);
+        }
+    } catch (Throwable $e) {
+        $mysqlErrno = (int)$e->getCode();
+        if ($mysqlErrno === 1451) {
+            $fallback = $deactivateUser($conn, $idColumn, $loginColumn, $hasStatusColumn, $id);
+            echo json_encode($fallback);
+            exit;
+        }
+        if ($mysqlErrno === 1451) {
+            echo json_encode(['sucesso' => false, 'mensagem' => 'Não é possível deletar este usuário pois ele possui vendas ou registros associados no sistema']);
+        } else {
+            $stmtError = ($stmt instanceof mysqli_stmt) ? $stmt->error : $conn->error;
+            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao deletar: ' . $stmtError]);
+        }
+    } finally {
+        if ($stmt instanceof mysqli_stmt) {
+            $stmt->close();
+        }
     }
     exit;
 }
