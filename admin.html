@@ -1853,56 +1853,6 @@ async function carregarSelecaoProdutosVenda() {
   }
 }
 
-function produtoEstaSelecionadoVenda(id) {
-  return produtosSelecionadosVenda.includes(Number(id));
-}
-
-function obterIndiceProdutoVenda(id) {
-  return produtosSelecionadosVenda.indexOf(Number(id));
-}
-
-function obterRotuloPosicaoProdutoVenda(id) {
-  const indice = obterIndiceProdutoVenda(id);
-  return indice === -1 ? '--' : String(indice + 1).padStart(2, '0');
-}
-
-function podeMoverProdutoVenda(id, direcao) {
-  const indice = obterIndiceProdutoVenda(id);
-  if (indice === -1) return false;
-
-  const novoIndice = indice + direcao;
-  return novoIndice >= 0 && novoIndice < produtosSelecionadosVenda.length;
-}
-
-function alternarProdutoVendaRapida(id, selecionado) {
-  const numero = Number(id);
-  const indice = obterIndiceProdutoVenda(numero);
-
-  if (selecionado && indice === -1) {
-    produtosSelecionadosVenda.push(numero);
-  }
-
-  if (!selecionado && indice !== -1) {
-    produtosSelecionadosVenda.splice(indice, 1);
-  }
-
-  renderTabelaProdutos();
-}
-
-function moverProdutoVendaRapida(id, direcao) {
-  const indice = obterIndiceProdutoVenda(id);
-  if (indice === -1) return;
-
-  const novoIndice = indice + direcao;
-  if (novoIndice < 0 || novoIndice >= produtosSelecionadosVenda.length) {
-    return;
-  }
-
-  const [produtoId] = produtosSelecionadosVenda.splice(indice, 1);
-  produtosSelecionadosVenda.splice(novoIndice, 0, produtoId);
-  renderTabelaProdutos();
-}
-
 function atualizarResumoSelecaoProdutosVenda() {
   const resumo = document.getElementById('produtosVendaResumo');
   if (!resumo) return;
