@@ -772,6 +772,48 @@
     }
   };
 
+  window.deletarTodosLogins = async function() {
+    const inicio = getVal('inicioCaixa');
+    const fim = getVal('fimCaixa');
+    const usuarioId = getVal('filtroUsuarioCaixa');
+
+    const escopo = (inicio && fim)
+      ? `período ${inicio} até ${fim}`
+      : 'todos os períodos';
+    const usuarioInfo = usuarioId ? ' e o atendente selecionado' : '';
+
+    const confirma1 = confirm(`Deseja deletar todos os logins do ${escopo}${usuarioInfo}?`);
+    if (!confirma1) return;
+
+    const confirma2 = confirm('Essa ação remove sessões e vendas vinculadas. Confirma novamente?');
+    if (!confirma2) return;
+
+    try {
+      const response = await fetch('api/relatorios.php?action=deletar_todos_caixas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inicio: inicio || null,
+          fim: fim || null,
+          usuario_id: usuarioId ? Number(usuarioId) : null
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.sucesso) {
+        const apagadas = Number(result.dados?.sessoes_apagadas || 0);
+        alert(`Operação concluída. Sessões removidas: ${apagadas}`);
+        loadRelatorioCaixa();
+      } else {
+        alert(result.mensagem || 'Erro ao deletar logins');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao deletar logins');
+    }
+  };
+
   window.loadResumoVendas = loadResumoVendas;
   window.loadResumoProducao = loadResumoProducao;
   window.loadResumoDetalhes = loadResumoDetalhes;

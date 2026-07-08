@@ -63,27 +63,144 @@ function obterNumeroVendaDia($conn) {
 }
 
 if ($method === 'GET' && $action === 'listar') {
-    $sql = "SELECT iv.id_venda, iv.id_produto, p.nome as produto, iv.quantidade, iv.preco_unitario, iv.subtotal, v.data_hora 
-            FROM itens_venda iv
-            JOIN produtos p ON iv.id_produto = p.id_produto
-            JOIN vendas v ON iv.id_venda = v.id_venda
-            ORDER BY v.data_hora DESC 
-            LIMIT 300";
-    $res = $conn->query($sql);
+    $somenteHoje = !isset($_GET['somente_hoje']) || $_GET['somente_hoje'] !== '0';
+    $usuarioFiltro = (int)($_GET['usuario_id'] ?? 0);
+    $agruparVenda = isset($_GET['agrupar_venda']) && $_GET['agrupar_venda'] === '1';
+
+    $where = [];
+    $params = [];
+    $types = '';
+
+    if ($somenteHoje) {
+        $where[] = 'DATE(v.data_hora) = CURDATE()';
+    }
+
+    if ($usuarioFiltro > 0) {
+        $where[] = 'v.id_usuario = ?';
+        $params[] = $usuarioFiltro;
+        $types .= 'i';
+    }
+
+    $whereSql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+    if ($agruparVenda) {
+        $sql = "SELECT v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia,
+                       COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor,
+                       COALESCE(v.valor_total, SUM(iv.subtotal), 0) as valor_total
+                FROM vendas v
+                LEFT JOIN itens_venda iv ON iv.id_venda = v.id_venda
+                LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
+                $whereSql
+                GROUP BY v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia, vendedor, v.valor_total
+                ORDER BY v.data_hora DESC
+                LIMIT 300";
+    } else {
+        $sql = "SELECT iv.id_venda, iv.id_produto, p.nome as produto, iv.quantidade, iv.preco_unitario, iv.subtotal, v.data_hora,
+                       v.numero_venda_turno, v.numero_venda_dia,
+                       COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor
+                FROM itens_venda iv
+                JOIN produtos p ON iv.id_produto = p.id_produto
+                JOIN vendas v ON iv.id_venda = v.id_venda
+                LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
+                $whereSql
+                ORDER BY v.data_hora DESC
+                LIMIT 300";
+    }
+
+    if (count($params)) {
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) json_error('Erro ao preparar listagem de vendas: ' . $conn->error);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $res = $stmt->get_result();
+    } else {
+        $res = $conn->query($sql);
+    }
+
     if (!$res) json_error('Erro ao listar vendas: ' . $conn->error);
     $out = [];
     while ($r = $res->fetch_assoc()) {
         $out[] = [
             'id'=>(int)$r['id_venda'],
             'numero_pedido'=>(int)$r['id_venda'],
-            'produto_nome'=>$r['produto'],
-            'quantidade'=>(int)$r['quantidade'],
-            'preco_unitario'=>(float)$r['preco_unitario'],
-            'total'=>(float)$r['subtotal'],
-            'data_venda'=>$r['data_hora']
+            'numero_venda_turno'=>(int)($r['numero_venda_turno'] ?? 0),
+            'numero_venda_dia'=>(int)($r['numero_venda_dia'] ?? 0),
+            'produto_nome'=>$r['produto'] ?? null,
+            'quantidade'=>(int)($r['quantidade'] ?? 0),
+            'preco_unitario'=>(float)($r['preco_unitario'] ?? 0),
+            'total'=>(float)($r['subtotal'] ?? ($r['valor_total'] ?? 0)),
+            'valor_total'=>(float)($r['valor_total'] ?? ($r['subtotal'] ?? 0)),
+            'data_venda'=>$r['data_hora'],
+            'vendedor'=>$r['vendedor']
         ];
     }
     echo json_encode(['sucesso'=>true,'dados'=>$out]);
+    exit;
+}
+
+if ($method === 'GET' && $action === 'detalhes') {
+    $idVenda = (int)($_GET['id'] ?? 0);
+    if ($idVenda <= 0) {
+        json_error('ID da venda inválido');
+    }
+
+    $sqlCab = "SELECT v.id_venda, v.data_hora, v.valor_total, v.numero_venda_turno, v.numero_venda_dia,
+                      COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor
+               FROM vendas v
+               LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
+               WHERE v.id_venda = ?
+               LIMIT 1";
+    $stmtCab = $conn->prepare($sqlCab);
+    if (!$stmtCab) {
+        json_error('Erro ao preparar cabeçalho da venda: ' . $conn->error);
+    }
+    $stmtCab->bind_param('i', $idVenda);
+    $stmtCab->execute();
+    $cab = $stmtCab->get_result()->fetch_assoc();
+    $stmtCab->close();
+
+    if (!$cab) {
+        json_error('Venda não encontrada');
+    }
+
+    $sqlItens = "SELECT i.id_produto, p.nome as produto, i.quantidade, i.preco_unitario, i.subtotal
+                 FROM itens_venda i
+                 LEFT JOIN produtos p ON p.id_produto = i.id_produto
+                 WHERE i.id_venda = ?
+                 ORDER BY i.id_item ASC";
+    $stmtItens = $conn->prepare($sqlItens);
+    if (!$stmtItens) {
+        json_error('Erro ao preparar itens da venda: ' . $conn->error);
+    }
+    $stmtItens->bind_param('i', $idVenda);
+    $stmtItens->execute();
+    $resItens = $stmtItens->get_result();
+
+    $itens = [];
+    while ($row = $resItens->fetch_assoc()) {
+        $itens[] = [
+            'id_produto' => (int)$row['id_produto'],
+            'produto' => $row['produto'] ?? 'Produto',
+            'quantidade' => (int)$row['quantidade'],
+            'preco_unitario' => (float)$row['preco_unitario'],
+            'subtotal' => (float)$row['subtotal']
+        ];
+    }
+    $stmtItens->close();
+
+    echo json_encode([
+        'sucesso' => true,
+        'dados' => [
+            'id_venda' => (int)$cab['id_venda'],
+            'numero_venda_turno' => (int)($cab['numero_venda_turno'] ?? 0),
+            'numero_venda_dia' => (int)($cab['numero_venda_dia'] ?? 0),
+            'numero_exibicao' => (int)(($cab['numero_venda_turno'] ?? 0) ?: (($cab['numero_venda_dia'] ?? 0) ?: ($cab['id_venda'] ?? 0))),
+            'data_hora' => $cab['data_hora'],
+            'vendedor' => $cab['vendedor'],
+            'valor_total' => (float)$cab['valor_total'],
+            'itens' => $itens
+        ]
+    ]);
     exit;
 }
 

@@ -314,5 +314,91 @@ if ($method==='POST' && $action==='deletar_caixa'){
     ok(['mensagem' => 'Sessão de caixa deletada com sucesso']);
 }
 
+if ($method==='POST' && $action==='deletar_todos_caixas'){
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $inicio = trim((string)($data['inicio'] ?? ''));
+        $fim = trim((string)($data['fim'] ?? ''));
+        $usuarioId = (int)($data['usuario_id'] ?? 0);
+
+        $where = [];
+        $params = [];
+        $types = '';
+
+        if ($inicio !== '' && $fim !== '') {
+            $where[] = 'abertura_caixa BETWEEN ? AND ?';
+            $params[] = $inicio . ' 00:00:00';
+            $params[] = $fim . ' 23:59:59';
+            $types .= 'ss';
+        }
+
+        if ($usuarioId > 0) {
+            $where[] = 'id_usuario = ?';
+            $params[] = $usuarioId;
+            $types .= 'i';
+        }
+
+        $whereSql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        $sqlSessoes = "SELECT id_sessao FROM caixa_sessoes $whereSql";
+        if (count($params)) {
+            $stmt = $conn->prepare($sqlSessoes);
+            if (!$stmt) error('Erro ao preparar seleção de sessões: '.$conn->error);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $res = $stmt->get_result();
+        } else {
+            $res = $conn->query($sqlSessoes);
+        }
+
+        if (!$res) error('Erro ao buscar sessões para exclusão: '.$conn->error);
+
+        $sessoes = [];
+        while ($row = $res->fetch_assoc()) {
+            $sessoes[] = (int)$row['id_sessao'];
+        }
+
+        if (count($sessoes) === 0) {
+            ok(['mensagem' => 'Nenhuma sessão encontrada para deletar', 'sessoes_apagadas' => 0]);
+        }
+
+        $conn->begin_transaction();
+        try {
+            $stmtDelVendas = $conn->prepare("DELETE FROM vendas WHERE sessao_caixa_id = ?");
+            if (!$stmtDelVendas) {
+                throw new Exception('Erro ao preparar exclusão de vendas: '.$conn->error);
+            }
+
+            $stmtDelCaixa = $conn->prepare("DELETE FROM caixa_sessoes WHERE id_sessao = ?");
+            if (!$stmtDelCaixa) {
+                throw new Exception('Erro ao preparar exclusão de sessões: '.$conn->error);
+            }
+
+            foreach ($sessoes as $sessaoId) {
+                $stmtDelVendas->bind_param('i', $sessaoId);
+                if (!$stmtDelVendas->execute()) {
+                    throw new Exception('Erro ao deletar vendas da sessão '.$sessaoId.': '.$stmtDelVendas->error);
+                }
+
+                $stmtDelCaixa->bind_param('i', $sessaoId);
+                if (!$stmtDelCaixa->execute()) {
+                    throw new Exception('Erro ao deletar sessão '.$sessaoId.': '.$stmtDelCaixa->error);
+                }
+            }
+
+            $stmtDelVendas->close();
+            $stmtDelCaixa->close();
+
+            $conn->commit();
+            ok([
+                'mensagem' => 'Sessões de caixa deletadas com sucesso',
+                'sessoes_apagadas' => count($sessoes)
+            ]);
+        } catch (Exception $e) {
+            $conn->rollback();
+            error($e->getMessage());
+        }
+}
+
 echo json_encode(['sucesso'=>false,'mensagem'=>'Acao invalida em relatorios']);
 ?>

@@ -113,6 +113,36 @@ tbody tr:hover {
   background: #f8f9fa;
 }
 
+.venda-acoes-cell {
+  vertical-align: bottom;
+}
+
+.venda-acoes-wrap {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  min-height: 32px;
+}
+
+.btn-detalhes-venda {
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.venda-valor-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.btn-lupa-detalhes {
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .badge {
   display: inline-block;
   padding: 4px 12px;
@@ -329,17 +359,17 @@ tbody tr:hover {
 
     <div class="section">
       <div class="section-header">
-        <h2>Últimas Vendas</h2>
-        <button class="btn" onclick="carregarVendas()"> Atualizar</button>
+        <h2 id="tituloVendas">Últimas Vendas (Hoje)</h2>
+        <div class="btn-group">
+          <button id="btnModoVendas" class="btn" onclick="alternarModoVendas()">Ver Histórico</button>
+          <button class="btn" onclick="carregarVendas()"> Atualizar</button>
+        </div>
       </div>
       <table id="tableVendas">
         <thead>
           <tr>
-            <th>Número</th>
-            <th>Data/Hora</th>
-            <th>Atendente</th>
+            <th>Venda</th>
             <th>Valor</th>
-            <th>Ações</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -388,6 +418,6 @@ tbody tr:hover {
   </div>
 </div>
 
-<script src="js/dashboard.js?v=20260630_sync1"></script>
+<script src="js/dashboard.js?v=20260701_compacto2"></script>
 </body>
 </html>

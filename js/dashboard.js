@@ -3,14 +3,42 @@ let produtosFiltrados = [];
 let vendas = [];
 let carregandoVendas = false;
 let atualizacaoIntervalo = null;
+let exibirHistoricoVendas = false;
 const ESTOQUE_SYNC_KEY = 'cantina:estoqueAtualizadoEm';
 const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cantina-sync') : null;
+
+function obterContextoUsuario() {
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const rawType = String(localStorage.getItem('userType') || usuario.tipo || 'vendedor').toLowerCase();
+  const userType = (rawType === 'admin' || rawType === 'administrador' || rawType === 'gestor') ? 'admin' : 'vendedor';
+  const userId = Number(usuario.id_usuario || usuario.id || 0) || 0;
+  return { userType, userId };
+}
 
 function formatarMoeda(valor) {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
   }).format(Number(valor) || 0);
+}
+
+function atualizarUiModoVendas() {
+  const titulo = document.getElementById('tituloVendas');
+  const btnModo = document.getElementById('btnModoVendas');
+
+  if (titulo) {
+    titulo.textContent = exibirHistoricoVendas ? 'Últimas Vendas (Histórico)' : 'Últimas Vendas (Hoje)';
+  }
+
+  if (btnModo) {
+    btnModo.textContent = exibirHistoricoVendas ? 'Ver Hoje' : 'Ver Histórico';
+  }
+}
+
+function alternarModoVendas() {
+  exibirHistoricoVendas = !exibirHistoricoVendas;
+  atualizarUiModoVendas();
+  carregarVendas();
 }
 
 async function carregarDados() {
@@ -48,13 +76,25 @@ async function carregarVendas() {
   carregandoVendas = true;
 
   try {
-    const res = await fetch('api/vendas.php?action=listar&t=' + Date.now(), { cache: 'no-store' });
+    const { userType, userId } = obterContextoUsuario();
+    const params = new URLSearchParams({
+      action: 'listar',
+      agrupar_venda: '1',
+      somente_hoje: exibirHistoricoVendas ? '0' : '1',
+      t: String(Date.now())
+    });
+    if (userType !== 'admin' && userId > 0) {
+      params.set('usuario_id', String(userId));
+    }
+
+    const res = await fetch('api/vendas.php?' + params.toString(), { cache: 'no-store' });
     const data = await res.json();
     
     if (data.sucesso) {
       const lista = data.vendas || data.dados || [];
       vendas = lista.map(v => ({
         id_venda: v.id_venda || v.id || v.numero_pedido,
+        numero_exibicao: v.numero_venda_turno || v.numero_venda_dia || v.id_venda || v.id || v.numero_pedido,
         data_hora: v.data_hora || v.data_venda || v.data || null,
         usuario: v.usuario || v.vendedor || 'N/A',
         valor_total: v.valor_total || v.total || 0
@@ -186,21 +226,77 @@ function renderVendas() {
   const tbody = document.querySelector('#tableVendas tbody');
   
   if (vendas.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon"></div><p>Nenhuma venda registrada</p></td></tr>';
+    const mensagem = exibirHistoricoVendas
+      ? 'Nenhuma venda registrada no histórico'
+      : 'Nenhuma venda registrada hoje';
+    tbody.innerHTML = `<tr><td colspan="2" class="empty-state"><div class="empty-state-icon"></div><p>${mensagem}</p></td></tr>`;
     return;
   }
   
   tbody.innerHTML = vendas.map(v => `
     <tr>
-      <td><strong>#${v.id_venda}</strong></td>
-      <td>${new Date(v.data_hora).toLocaleString('pt-BR')}</td>
-      <td>${v.usuario || 'N/A'}</td>
-      <td><strong style="color: var(--brand);">R$ ${parseFloat(v.valor_total).toFixed(2)}</strong></td>
+      <td><strong>#${v.numero_exibicao}</strong> - ${v.usuario || 'N/A'}</td>
       <td>
-        <button class="btn-icon" onclick="verDetalhes(${v.id_venda})" title="Ver Detalhes"></button>
+        <div class="venda-valor-wrap">
+          <strong style="color: var(--brand);">R$ ${parseFloat(v.valor_total).toFixed(2)}</strong>
+          <button class="btn-icon btn-lupa-detalhes" onclick="verDetalhes(${v.id_venda})" title="Ver detalhes do cupom" aria-label="Ver detalhes do cupom">🔍</button>
+        </div>
       </td>
     </tr>
   `).join('');
+}
+
+function montarCupomTexto(venda, idFallback) {
+  const numero = venda.numero_exibicao || venda.numero_venda_turno || venda.numero_venda_dia || venda.id_venda || idFallback;
+  const dataVenda = venda.data_hora ? new Date(venda.data_hora).toLocaleString('pt-BR') : 'N/A';
+  const vendedor = venda.vendedor || 'N/A';
+  const itens = Array.isArray(venda.itens) ? venda.itens : [];
+  const sep = '-'.repeat(42);
+
+  const linhasItens = itens.length
+    ? itens.map((item) => {
+        const nome = String(item.produto || 'Produto').trim();
+        const qtd = Number(item.quantidade || 0);
+        const preco = Number(item.preco_unitario || 0).toFixed(2);
+        const subtotal = Number(item.subtotal || 0).toFixed(2);
+        return `${nome}\n  ${qtd} x R$ ${preco} = R$ ${subtotal}`;
+      }).join('\n')
+    : 'Sem itens';
+
+  return [
+    'CUPOM DE VENDA',
+    sep,
+    `Venda: #${numero}`,
+    `Vendedor: ${vendedor}`,
+    `Data: ${dataVenda}`,
+    sep,
+    'ITENS',
+    linhasItens,
+    sep,
+    `TOTAL: ${formatarMoeda(venda.valor_total || 0)}`,
+    sep
+  ].join('\n');
+}
+
+function verDetalhes(id) {
+  carregarDetalhesVenda(id);
+}
+
+async function carregarDetalhesVenda(id) {
+  try {
+    const res = await fetch(`api/vendas.php?action=detalhes&id=${encodeURIComponent(id)}&t=${Date.now()}`, { cache: 'no-store' });
+    const data = await res.json();
+
+    if (!data.sucesso || !data.dados) {
+      throw new Error(data.mensagem || 'Não foi possível carregar os detalhes da venda');
+    }
+
+    const venda = data.dados;
+    const cupomCompleto = montarCupomTexto(venda, id);
+    alert(cupomCompleto);
+  } catch (err) {
+    alert('Erro ao carregar detalhes: ' + (err.message || err));
+  }
 }
 
 function abrirModalProduto(id = null) {
@@ -299,10 +395,6 @@ async function excluirProduto(id) {
   }
 }
 
-function verDetalhes(id) {
-  alert('Venda #' + id + '\nFuncionalidade em desenvolvimento...');
-}
-
 function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
@@ -315,6 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   
+  atualizarUiModoVendas();
   carregarDados();
   iniciarAtualizacaoTempoReal();
   registrarSincronizacaoEstoque();
