@@ -400,5 +400,122 @@ if ($method==='POST' && $action==='deletar_todos_caixas'){
         }
 }
 
+// Ação: Trazer dados de caixa com filtros
+if ($method === 'GET' && $action === 'caixa_sessoes') {
+    $dataInicial = $_GET['data_inicial'] ?? '';
+    $dataFinal = $_GET['data_final'] ?? '';
+    $usuarioId = (int)($_GET['usuario_id'] ?? 0);
+    $status = $_GET['status'] ?? '';
+
+    $where = [];
+    $params = [];
+    $types = '';
+
+    if ($dataInicial && $dataFinal) {
+        $where[] = 'cs.abertura_caixa BETWEEN ? AND ?';
+        $params[] = $dataInicial . ' 00:00:00';
+        $params[] = $dataFinal . ' 23:59:59';
+        $types .= 'ss';
+    }
+
+    if ($usuarioId > 0) {
+        $where[] = 'cs.id_usuario = ?';
+        $params[] = $usuarioId;
+        $types .= 'i';
+    }
+
+    if ($status && in_array($status, ['aberto', 'fechado'])) {
+        $where[] = 'cs.status = ?';
+        $params[] = $status;
+        $types .= 's';
+    }
+
+    $whereSql = count($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    $sql = "SELECT 
+        cs.id_sessao,
+        cs.id_usuario,
+        cs.login_usuario,
+        cs.abertura_caixa,
+        cs.fechamento_caixa,
+        cs.valor_abertura,
+        cs.valor_fechamento,
+        cs.observacoes,
+        cs.status,
+        COALESCE(SUM(COALESCE(v.valor_total, v.total, 0)), 0) as total_vendas
+    FROM caixa_sessoes cs
+    LEFT JOIN vendas v ON v.sessao_caixa_id = cs.id_sessao
+    $whereSql
+    GROUP BY cs.id_sessao
+    ORDER BY cs.abertura_caixa DESC";
+
+    if (count($params) > 0) {
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) error('Erro ao preparar query: ' . $conn->error);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    } else {
+        $result = $conn->query($sql);
+    }
+
+    if (!$result) error('Erro ao buscar sessões de caixa: ' . $conn->error);
+
+    $dados = [];
+    while ($row = $result->fetch_assoc()) {
+        $dados[] = [
+            'id_sessao' => (int)$row['id_sessao'],
+            'id_usuario' => (int)$row['id_usuario'],
+            'login_usuario' => $row['login_usuario'],
+            'abertura_caixa' => $row['abertura_caixa'],
+            'fechamento_caixa' => $row['fechamento_caixa'],
+            'valor_abertura' => (float)$row['valor_abertura'],
+            'valor_fechamento' => (float)$row['valor_fechamento'],
+            'observacoes' => $row['observacoes'],
+            'status' => $row['status'],
+            'total_vendas' => (float)$row['total_vendas']
+        ];
+    }
+
+    ok($dados);
+}
+
+// Ação: Trazer último caixa aberto de um usuário
+if ($method === 'GET' && $action === 'ultimo_caixa') {
+    $usuarioId = (int)($_GET['usuario_id'] ?? 0);
+
+    if ($usuarioId <= 0) {
+        error('Usuário não informado');
+    }
+
+    $sql = "SELECT 
+        id_sessao,
+        abertura_caixa,
+        valor_abertura,
+        status
+    FROM caixa_sessoes
+    WHERE id_usuario = ?
+    ORDER BY abertura_caixa DESC
+    LIMIT 1";
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) error('Erro ao preparar query: ' . $conn->error);
+    $stmt->bind_param('i', $usuarioId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        ok(null);
+    }
+
+    $row = $result->fetch_assoc();
+    ok([
+        'id_sessao' => (int)$row['id_sessao'],
+        'abertura_caixa' => $row['abertura_caixa'],
+        'valor_abertura' => (float)$row['valor_abertura'],
+        'status' => $row['status']
+    ]);
+}
+
 echo json_encode(['sucesso'=>false,'mensagem'=>'Acao invalida em relatorios']);
 ?>

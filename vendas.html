@@ -1145,10 +1145,10 @@ body {
   </button>
   <nav class="nav" id="navMenu" onclick="fecharNavFora(event)">
     <div class="nav-menu">
-      <a href="vendas.html" class="active">Vendas</a>
       <a href="dashboard.html" onclick="return abrirJanelaProducao(event)">Produção</a>
-      <a href="login-menu.html" onclick="if (window.history.length > 1) { window.history.back(); return false; }">Voltar</a>
-      <a href="login-menu.html" onclick="logout()">Sair</a>
+      <a href="#" onclick="mostrarModalAberturaCache(); return false;" style="color: #ffffff; font-weight: 600;">Abertura de Caixa</a>
+      <a href="#" onclick="finalizarCaixaDiario(); return false;" style="color: #ffffff; font-weight: 600;">Finalizar Caixa</a>
+      <a href="login-menu.html" onclick="logout(); return false;">Sair</a>
     </div>
   </nav>
 </div>
@@ -1207,13 +1207,14 @@ body {
     </div>
     <div class="cart-modal-footer">
       <button id="btnFinalizarModal" class="btn btn-primary" type="button" onclick="finalizarVendaViaModal()" disabled>Finalizar Venda</button>
+      <button id="btnAbrirModalPerda" class="btn btn-secondary" type="button" onclick="abrirModalPerda()" style="margin-top: 8px;">Registrar Perda</button>
     </div>
   </div>
 </div>
 <div id="cupomModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h2>Cupom Fiscal</h2>
+      <h2>Cupom não Fiscal</h2>
     </div>
     <div class="modal-body">
       <div id="cupomPreview"></div>
@@ -1226,8 +1227,22 @@ body {
     </div>
   </div>
 </div>
-<script src="js/vendas.js?v=20260630_sync1"></script>
+<script src="js/vendas.js?v=20260630_sync2"></script>
 <script>
+// Formatação de moeda para input de fechamento de caixa
+setTimeout(function() {
+  const valorInput = document.getElementById('valorFechamentoCaixa');
+  if (valorInput) {
+    valorInput.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 0) {
+        value = (value / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      e.target.value = value;
+    });
+  }
+}, 100);
+
 window.abrirCarrinhoModal = function() {
   const modal = document.getElementById('carrinhoModal');
   if (!modal) return;
@@ -1289,6 +1304,10 @@ document.addEventListener('keydown', (event) => {
     const modal = document.getElementById('carrinhoModal');
     if (modal && modal.classList.contains('show')) {
       window.fecharCarrinhoModal();
+    }
+    const perdaM = document.getElementById('perdaModal');
+    if (perdaM && perdaM.classList.contains('show')) {
+      fecharModalPerda();
     }
   }
 });
@@ -1386,14 +1405,178 @@ document.addEventListener('DOMContentLoaded', () => {
   const userType = (rawType === 'admin' || rawType === 'administrador' || rawType === 'gestor') ? 'admin' : 'vendedor';
   localStorage.setItem('userType', userType);
   
-  // Se for vendedor, esconder link de Administração
+  // Se for vendedor, esconder link de Administração e ações restritas
   if (userType === 'vendedor') {
     const adminLink = document.querySelector('a[href="admin.html"]');
     if (adminLink) {
       adminLink.style.display = 'none';
     }
+    const btnPerda = document.getElementById('btnAbrirModalPerda');
+    if (btnPerda) {
+      btnPerda.style.display = 'none';
+    }
   }
 });
+</script>
+
+<!-- Modal de Abertura de Caixa -->
+<div id="modalAberturaCache" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+  <div style="background: white; border-radius: 12px; padding: 24px; width: min(420px, 90vw); max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <h2 style="margin: 0 0 16px 0; color: #333;">Abertura de Caixa</h2>
+    <form id="formAberturaCache" onsubmit="processarAberturaCache(event)" style="display: flex; flex-direction: column; gap: 16px;">
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Usuário</label>
+        <div style="padding: 10px; background: #f5f5f5; border-radius: 8px; color: #333;" id="nomeUsuarioModal">-</div>
+      </div>
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Valor de Abertura (R$) *</label>
+        <input type="text" id="valorAberturaCache" placeholder="0,00" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;" required>
+      </div>
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Observações (opcional)</label>
+        <textarea id="obsAberturaCache" placeholder="Anotações adicionais..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 80px;"></textarea>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="button" onclick="cancelarAberturaCache()" style="flex: 1; padding: 12px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: #333;">Cancelar</button>
+        <button type="submit" style="flex: 1; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de Fechamento de Caixa -->
+<div id="modalFechamentoCaixa" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+  <div style="background: white; border-radius: 12px; padding: 24px; width: min(420px, 90vw); max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <h2 style="margin: 0 0 16px 0; color: #333;">Finalizar Caixa</h2>
+    <form id="formFechamentoCaixa" onsubmit="processarFechamentoCaixa(event)" style="display: flex; flex-direction: column; gap: 16px;">
+      <div id="sugestaoValorFechamento"></div>
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Valor de Fechamento (R$) *</label>
+        <input type="text" id="valorFechamentoCaixa" placeholder="0,00" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;" required>
+        <div style="font-size: 12px; color: #888; margin-top: 4px;">Digite ou corrija o valor acima</div>
+      </div>
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Observações (opcional)</label>
+        <textarea id="obsFechamentoCaixa" placeholder="Anotações adicionais..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 80px;"></textarea>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="button" onclick="cancelarFechamentoCaixa()" style="flex: 1; padding: 12px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: #333;">Cancelar</button>
+        <button type="submit" style="flex: 1; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Próximo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de Relatório de Fechamento -->
+<div id="modalRelatorioCaixa" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10001; align-items: center; justify-content: center;">
+  <div style="background: white; border-radius: 12px; padding: 24px; width: min(500px, 90vw); max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <h2 style="margin: 0 0 20px 0; color: #333; text-align: center;">Relatório de Fechamento</h2>
+    
+    <div style="background: #f9f9f9; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e0e0e0;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+        <div>
+          <div style="color: #666; margin-bottom: 4px;">Valor de Abertura</div>
+          <div style="font-size: 18px; font-weight: 600; color: #4CAF50;" id="relValorAbertura">R$ 0,00</div>
+        </div>
+        <div>
+          <div style="color: #666; margin-bottom: 4px;">Total de Vendas</div>
+          <div style="font-size: 18px; font-weight: 600; color: #2196F3;" id="relTotalVendas">R$ 0,00</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #4CAF50;">
+      <div style="color: #666; font-size: 14px; margin-bottom: 6px;">Valor Esperado (Abertura + Vendas)</div>
+      <div style="font-size: 24px; font-weight: 700; color: #2e7d32;" id="relValorEsperado">R$ 0,00</div>
+    </div>
+
+    <div style="background: #fff3e0; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #FF9800;">
+      <div style="color: #666; font-size: 14px; margin-bottom: 6px;">Valor Informado</div>
+      <div style="font-size: 24px; font-weight: 700; color: #e65100;" id="relValorInformado">R$ 0,00</div>
+    </div>
+
+    <div style="background: #f3e5f5; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #9C27B0;">
+      <div style="color: #666; font-size: 14px; margin-bottom: 6px;">Diferença</div>
+      <div style="font-size: 24px; font-weight: 700; color: #6a1b9a;" id="relDiferenca">R$ 0,00</div>
+      <div style="font-size: 12px; color: #888; margin-top: 6px;" id="relDiferencaTexto"></div>
+    </div>
+
+    <div style="background: #f0f0f0; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid #999;">
+      <div style="font-size: 13px; color: #555; line-height: 1.6;" id="relObservacoes"></div>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <button type="button" onclick="voltarParaFechamento()" style="flex: 1; padding: 12px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: #333;">Voltar</button>
+      <button type="button" onclick="confirmarFechamentoCaixa()" style="flex: 1; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Confirmar Fechamento</button>
+    </div>
+  </div>
+</div>
+
+<div id="perdaModal" class="modal" onclick="if(event.target===this)fecharModalPerda()">
+  <div class="modal-content">
+    <div class="modal-header"><h2>Registrar Perda</h2></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Produto *</label>
+        <select id="perdaProduto" required></select>
+      </div>
+      <div class="form-group">
+        <label>Quantidade perdida *</label>
+        <input type="number" id="perdaQuantidade" min="1" step="1" required>
+      </div>
+      <div class="form-group">
+        <label>Motivo (opcional)</label>
+        <input type="text" id="perdaMotivo" placeholder="Ex: Vencido, Estragado">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="salvarPerda()">Confirmar Perda</button>
+      <button class="btn" onclick="fecharModalPerda()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function abrirModalPerda() {
+  const sel = document.getElementById('perdaProduto');
+  sel.innerHTML = produtos            // reutilize o array já carregado na tela
+    .filter(p => Number(p.estoque ?? p.estoque_atual) > 0)
+    .map(p => `<option value="${p.id}">${p.nome} (estoque: ${p.estoque ?? p.estoque_atual})</option>`)
+    .join('');
+  document.getElementById('perdaModal').classList.add('show');
+}
+
+function fecharModalPerda() {
+  document.getElementById('perdaModal').classList.remove('show');
+  document.getElementById('perdaQuantidade').value = '';
+  document.getElementById('perdaMotivo').value = '';
+}
+
+async function salvarPerda() {
+  const produto_id = document.getElementById('perdaProduto').value;
+  const quantidade = parseInt(document.getElementById('perdaQuantidade').value, 10);
+  const motivo = document.getElementById('perdaMotivo').value.trim();
+  if (!produto_id || !Number.isInteger(quantidade) || quantidade <= 0) {
+    alert('Informe produto e quantidade válida.');
+    return;
+  }
+  const res = await fetch('api/movimentacoes.php?action=registrar_perda', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      produto_id, quantidade, motivo,
+      usuario_id: JSON.parse(localStorage.getItem('usuario') || '{}').id
+    })
+  });
+  const data = await res.json();
+  if (data.sucesso) {
+    alert(`Registro de perda de ${quantidade} unidade(s) concluído.`);
+    fecharModalPerda();
+    carregarProdutos(); // atualiza o estoque na tela
+  } else {
+    alert(data.mensagem || 'Erro: quantidade excede o estoque atual.');
+  }
+}
 </script>
 <script src="js/vendas-config.js?v=20260401"></script>
 </body>

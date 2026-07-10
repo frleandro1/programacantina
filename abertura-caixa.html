@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lefro Cantina - Abertura de Caixa</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .caixa-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .caixa-card h1 {
+      text-align: center;
+      color: #333;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .caixa-card .subtitulo {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    .usuario-info {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      border-left: 4px solid #ff7a45;
+    }
+
+    .usuario-info p {
+      margin: 0;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .usuario-info .valor-anterior {
+      color: #666;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #ff7a45;
+      box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.1);
+    }
+
+    .form-group input.currency {
+      font-size: 18px;
+      font-weight: 600;
+      color: #27ae60;
+      text-align: center;
+    }
+
+    .botoes {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-confirmar {
+      background: #27ae60;
+      color: white;
+    }
+
+    .btn-confirmar:hover {
+      background: #229954;
+      box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+    }
+
+    .btn-confirmar:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .btn-cancelar {
+      background: #ecf0f1;
+      color: #666;
+    }
+
+    .btn-cancelar:hover {
+      background: #bdc3c7;
+    }
+
+    .info-box {
+      background: #eff8ff;
+      border-left: 4px solid #3498db;
+      padding: 14px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #2c3e50;
+      line-height: 1.5;
+    }
+
+    .erro {
+      background: #fadbd8;
+      border-left-color: #e74c3c;
+      color: #c0392b;
+    }
+
+    .sucesso {
+      background: #d5f4e6;
+      border-left-color: #27ae60;
+      color: #16a085;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #ff7a45;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="caixa-card">
+    <h1>Abertura de Caixa</h1>
+    <p class="subtitulo">Registre o valor inicial do caixa</p>
+
+    <div class="usuario-info">
+      <p><strong>Usuário:</strong> <span id="nomeUsuario">-</span></p>
+      <p><strong>Hora:</strong> <span id="horaAtual">-</span></p>
+      <p class="valor-anterior" id="ultimoValor"></p>
+    </div>
+
+    <div id="msgErro" class="info-box erro" style="display: none;"></div>
+    <div id="msgSucesso" class="info-box sucesso" style="display: none;"></div>
+
+    <div class="info-box">
+      📌 Digite o valor em reais que você está abrindo o caixa (ex: 100,00)
+    </div>
+
+    <form id="formAberturaCaixa">
+      <div class="form-group">
+        <label for="valorAbertura">Valor de Abertura (R$)</label>
+        <input
+          type="text"
+          id="valorAbertura"
+          class="currency"
+          placeholder="0,00"
+          required
+          pattern="[\d,.]+"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="observacoes">Observações (opcional)</label>
+        <input
+          type="text"
+          id="observacoes"
+          placeholder="Ex: Trocos iniciais..."
+        >
+      </div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Abrindo caixa...</p>
+      </div>
+
+      <div class="botoes" id="botoes">
+        <button type="button" class="btn btn-cancelar" onclick="sairSemAbertura()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-confirmar" id="btnConfirmar">
+          Confirmar Abertura
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Formatar valor como moeda
+    function formatarMoeda(valor) {
+      const num = parseFloat(valor.replace(/\D/g, '')) / 100;
+      return isNaN(num) ? '0,00' : num.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    // Atualizar hora
+    function atualizarHora() {
+      const agora = new Date();
+      const horas = String(agora.getHours()).padStart(2, '0');
+      const minutos = String(agora.getMinutes()).padStart(2, '0');
+      document.getElementById('horaAtual').textContent = `${horas}:${minutos}`;
+    }
+
+    // Mascarar input de moeda
+    document.getElementById('valorAbertura').addEventListener('input', function(e) {
+      let valor = e.target.value.replace(/\D/g, '');
+      if (valor) {
+        valor = (parseInt(valor) / 100).toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+      e.target.value = valor;
+    });
+
+    // Carregar dados do usuário
+    async function carregarDadosUsuario() {
+      try {
+        const usuario = localStorage.getItem('userName') || localStorage.getItem('username') || 'Usuário';
+        const userId = localStorage.getItem('userId');
+        document.getElementById('nomeUsuario').textContent = usuario;
+
+        // Buscar abertura de caixa de HOJE
+        if (userId) {
+          const resp = await fetch(`api/abertura-caixa.php?action=verificar_hoje&usuario_id=${userId}`);
+          const data = await resp.json();
+          
+          if (data.sucesso && data.dados) {
+            const sessaoHoje = data.dados;
+            
+            if (sessaoHoje.status === 'aberto') {
+              // Já tem abertura de hoje aberta, redireciona direto
+              localStorage.setItem('sessaoCaixaId', sessaoHoje.id_sessao);
+              localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
+              localStorage.setItem('valorAberturaAtual', sessaoHoje.valor_abertura || '0');
+              setTimeout(() => {
+                window.location.href = 'vendas.html';
+              }, 500);
+              return;
+            } else if (sessaoHoje.status === 'fechado') {
+              // Caixa foi fechado hoje, mostra mensagem
+              document.getElementById('ultimoValor').innerHTML = 
+                `<strong>Caixa fechado hoje</strong> às ${new Date(sessaoHoje.fechamento_caixa).toLocaleTimeString('pt-BR')} - Abra um novo caixa`;
+            }
+          }
+        }
+
+        atualizarHora();
+        setInterval(atualizarHora, 60000);
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+      }
+    }
+
+    // Enviar abertura de caixa
+    document.getElementById('formAberturaCaixa').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const valorAbertura = document.getElementById('valorAbertura').value;
+      const observacoes = document.getElementById('observacoes').value;
+      const sessaoCaixaId = localStorage.getItem('sessaoCaixaId');
+
+      if (!valorAbertura || valorAbertura === '0,00') {
+        mostrarErro('Informe um valor de abertura válido');
+        return;
+      }
+
+      if (!sessaoCaixaId) {
+        mostrarErro('Sessão de caixa não encontrada. Faça login novamente.');
+        return;
+      }
+
+      // Parse do valor
+      const valor = parseFloat(valorAbertura.replace(',', '.'));
+
+      if (isNaN(valor) || valor < 0) {
+        mostrarErro('Valor inválido');
+        return;
+      }
+
+      const btnConfirmar = document.getElementById('btnConfirmar');
+      const loading = document.getElementById('loading');
+      const botoes = document.getElementById('botoes');
+
+      btnConfirmar.disabled = true;
+      loading.style.display = 'block';
+      botoes.style.opacity = '0.5';
+
+      try {
+        const resp = await fetch('api/abertura-caixa.php?action=registrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessao_id: parseInt(sessaoCaixaId, 10),
+            valor_abertura: valor,
+            observacoes: observacoes
+          })
+        });
+
+        const resultado = await resp.json();
+
+        if (resultado.sucesso) {
+          localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
+          localStorage.setItem('valorAberturaAtual', valor.toString());
+          
+          mostrarSucesso('✓ Caixa aberto com sucesso!');
+          setTimeout(() => {
+            window.location.href = 'vendas.html';
+          }, 1500);
+        } else {
+          mostrarErro(resultado.mensagem || 'Erro ao abrir caixa');
+          btnConfirmar.disabled = false;
+          loading.style.display = 'none';
+          botoes.style.opacity = '1';
+        }
+      } catch (err) {
+        mostrarErro('Erro ao conectar com servidor: ' + err.message);
+        btnConfirmar.disabled = false;
+        loading.style.display = 'none';
+        botoes.style.opacity = '1';
+      }
+    });
+
+    function mostrarErro(msg) {
+      const el = document.getElementById('msgErro');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('msgSucesso').style.display = 'none';
+    }
+
+    function mostrarSucesso(msg) {
+      const el = document.getElementById('msgSucesso');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('msgErro').style.display = 'none';
+    }
+
+    function sairSemAbertura() {
+      if (confirm('Deseja realmente sair sem abrir o caixa?')) {
+        localStorage.removeItem('sessaoCaixaId');
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userType');
+        window.location.href = 'login-menu.html';
+      }
+    }
+
+    // Verificar autenticação
+    window.addEventListener('load', function() {
+      const usuario = localStorage.getItem('usuario');
+      const sessao = localStorage.getItem('sessaoCaixaId');
+      const jaPrenchido = localStorage.getItem('aberturaCaixaEm');
+
+      if (!usuario || !sessao) {
+        window.location.href = 'login-menu.html';
+        return;
+      }
+
+      if (jaPrenchido) {
+        window.location.href = 'vendas.html';
+        return;
+      }
+
+      carregarDadosUsuario();
+    });
+  </script>
+</body>
+</html>

@@ -122,18 +122,71 @@ if ($method === 'POST' && $action === 'login') {
         if (verify_password($password, $row['senha'])) {
             $papelNormalizado = normalize_usuario_role($row['papel'] ?? 'vendedor');
             $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-            $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
-            if (!$stmtSessao) {
-                echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
-                exit;
+            
+            // Verificar se já tem sessão aberta de caixa HOJE
+            $hoje = date('Y-m-d');
+            $stmtVerificar = $conn->prepare(
+                'SELECT id_sessao, status FROM caixa_sessoes WHERE id_usuario = ? AND DATE(abertura_caixa) = ? ORDER BY abertura_caixa DESC LIMIT 1'
+            );
+            
+            if ($stmtVerificar) {
+                $stmtVerificar->bind_param('is', $row['id_usuario'], $hoje);
+                $stmtVerificar->execute();
+                $resultVerificar = $stmtVerificar->get_result();
+                
+                if ($resultVerificar->num_rows > 0) {
+                    $sessaoExistente = $resultVerificar->fetch_assoc();
+                    
+                    // Se última sessão do dia está ABERTA, reutiliza
+                    if ($sessaoExistente['status'] === 'aberto') {
+                        $sessaoCaixaId = (int)$sessaoExistente['id_sessao'];
+                    } else {
+                        // Se está FECHADA, cria nova sessão (reabertura do caixa)
+                        $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
+                        if (!$stmtSessao) {
+                            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
+                            exit;
+                        }
+                        $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
+                        if (!$stmtSessao->execute()) {
+                            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
+                            exit;
+                        }
+                        $sessaoCaixaId = (int)$stmtSessao->insert_id;
+                        $stmtSessao->close();
+                    }
+                } else {
+                    // Cria primeira sessão de caixa do dia
+                    $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
+                    if (!$stmtSessao) {
+                        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
+                        exit;
+                    }
+                    $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
+                    if (!$stmtSessao->execute()) {
+                        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
+                        exit;
+                    }
+                    $sessaoCaixaId = (int)$stmtSessao->insert_id;
+                    $stmtSessao->close();
+                }
+                
+                $stmtVerificar->close();
+            } else {
+                // Erro ao preparar verificação, mas continua criando nova sessão
+                $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
+                if (!$stmtSessao) {
+                    echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
+                    exit;
+                }
+                $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
+                if (!$stmtSessao->execute()) {
+                    echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
+                    exit;
+                }
+                $sessaoCaixaId = (int)$stmtSessao->insert_id;
+                $stmtSessao->close();
             }
-            $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
-            if (!$stmtSessao->execute()) {
-                echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
-                exit;
-            }
-            $sessaoCaixaId = (int)$stmtSessao->insert_id;
-            $stmtSessao->close();
 
             $_SESSION['usuario_id'] = $row['id_usuario'];
             $_SESSION['username'] = $row['login'];

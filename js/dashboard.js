@@ -396,7 +396,12 @@ async function excluirProduto(id) {
 }
 
 function logout() {
-  localStorage.clear();
+  localStorage.removeItem('token');
+  localStorage.removeItem('usuario');
+  localStorage.removeItem('username');
+  localStorage.removeItem('userType');
+  localStorage.removeItem('sessaoCaixaId');
+  localStorage.removeItem('aberturaCaixaEm');
   window.location.href = 'login.html';
 }
 

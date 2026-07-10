@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatórios de Caixa - Lefro Cantina</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f5f6fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      margin: 0;
+      color: #333;
+      font-size: 28px;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: #ff7a45;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #ff6a2e;
+      box-shadow: 0 4px 12px rgba(255, 122, 69, 0.3);
+    }
+
+    .btn-secondary {
+      background: #3498db;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #2980b9;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .filtros {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    .filtro-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .filtro-group label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .filtro-group input,
+    .filtro-group select {
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .filtro-group input:focus,
+    .filtro-group select:focus {
+      outline: none;
+      border-color: #ff7a45;
+    }
+
+    .cards-resumo {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h3 {
+      margin: 0 0 12px;
+      color: #666;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card .valor {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ff7a45;
+    }
+
+    .card.blue .valor { color: #3498db; }
+    .card.green .valor { color: #27ae60; }
+    .card.red .valor { color: #e74c3c; }
+
+    .tabela-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .tabela-titulo {
+      padding: 20px;
+      border-bottom: 2px solid #f0f0f0;
+      font-weight: 600;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .tabela-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #f8f9fa;
+    }
+
+    th {
+      padding: 14px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    td {
+      padding: 14px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+      color: #333;
+    }
+
+    tbody tr:hover {
+      background: #f9f9f9;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-aberto {
+      background: #d5f4e6;
+      color: #16a085;
+    }
+
+    .badge-fechado {
+      background: #fadbd8;
+      color: #c0392b;
+    }
+
+    .valor-moeda {
+      font-weight: 600;
+      color: #27ae60;
+    }
+
+    .acoes {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-sm-info {
+      background: #3498db;
+      color: white;
+    }
+
+    .btn-sm-info:hover {
+      background: #2980b9;
+    }
+
+    .btn-sm-delete {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-sm-delete:hover {
+      background: #c0392b;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state p {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #ff7a45;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .grafico-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 24px;
+    }
+
+    .grafico-container h3 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .header-buttons {
+        width: 100%;
+      }
+
+      .btn {
+        flex: 1;
+        justify-content: center;
+      }
+
+      .filtros {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Relatórios de Caixa</h1>
+      <div class="header-buttons">
+        <button class="btn btn-secondary" onclick="exportarPDF()">📥 Exportar PDF</button>
+        <button class="btn btn-primary" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
+        <button class="btn" style="background: #95a5a6; color: white;" onclick="voltarDashboard()">↩️ Voltar</button>
+      </div>
+    </div>
+
+    <div class="filtros">
+      <div class="filtro-group">
+        <label>Data Inicial</label>
+        <input type="date" id="dataInicial" onchange="carregarRelatorio()">
+      </div>
+      <div class="filtro-group">
+        <label>Data Final</label>
+        <input type="date" id="dataFinal" onchange="carregarRelatorio()">
+      </div>
+      <div class="filtro-group">
+        <label>Usuário</label>
+        <select id="usuarioFiltro" onchange="carregarRelatorio()">
+          <option value="">Todos os usuários</option>
+        </select>
+      </div>
+      <div class="filtro-group">
+        <label>Status</label>
+        <select id="statusFiltro" onchange="carregarRelatorio()">
+          <option value="">Todos</option>
+          <option value="aberto">Aberto</option>
+          <option value="fechado">Fechado</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cards-resumo">
+      <div class="card">
+        <h3>Total de Sessões</h3>
+        <div class="valor" id="totalSessoes">0</div>
+      </div>
+      <div class="card blue">
+        <h3>Total Aberto</h3>
+        <div class="valor" id="totalAberto">R$ 0,00</div>
+      </div>
+      <div class="card green">
+        <h3>Total de Vendas</h3>
+        <div class="valor" id="totalVendas">R$ 0,00</div>
+      </div>
+      <div class="card red">
+        <h3>Lucro Médio</h3>
+        <div class="valor" id="diferenca">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="grafico-container" id="graficoContainer" style="display: none;">
+      <h3>📈 Evolução Diária de Valores</h3>
+      <canvas id="grafico"></canvas>
+    </div>
+
+    <div class="tabela-container">
+      <div class="tabela-titulo">Histórico de Caixa</div>
+      <div class="loading" id="carregando">
+        <div class="spinner"></div>
+        <p>Carregando dados...</p>
+      </div>
+      <div class="tabela-wrapper" id="tabelaWrapper" style="display: none;">
+        <table id="tabelaCaixa">
+          <thead>
+            <tr>
+              <th>Sessão ID</th>
+              <th>Usuário</th>
+              <th>Abertura</th>
+              <th>Valor Abertura</th>
+              <th>Total de Vendas</th>
+              <th>Fechamento</th>
+              <th>Valor Fechamento</th>
+              <th>Lucro</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabela">
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="vazio" style="display: none;">
+        <p>📭 Nenhum registro encontrado</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+  <script>
+    let todosOsDados = [];
+
+    function calcularMetricas(item) {
+      const valorAbertura = parseFloat(item.valor_abertura || 0);
+      const totalVendas = parseFloat(item.total_vendas || 0);
+      const valorFechamento = parseFloat(item.valor_fechamento || 0);
+      const status = String(item.status || '').toLowerCase();
+      const sessaoFechada = status === 'fechado' && valorFechamento > 0;
+      const valorEsperado = valorAbertura + totalVendas;
+      const lucro = sessaoFechada ? (valorFechamento - valorAbertura) : null;
+      const diferencaCaixa = sessaoFechada ? (valorFechamento - valorEsperado) : null;
+
+      return {
+        valorAbertura,
+        totalVendas,
+        valorFechamento,
+        valorEsperado,
+        lucro,
+        diferencaCaixa,
+        sessaoFechada
+      };
+    }
+
+    function formatarMoeda(valor) {
+      return 'R$ ' + Number(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    async function carregarRelatorio() {
+      const dataInicial = document.getElementById('dataInicial').value;
+      const dataFinal = document.getElementById('dataFinal').value;
+      const usuario = document.getElementById('usuarioFiltro').value;
+      const status = document.getElementById('statusFiltro').value;
+
+      document.getElementById('carregando').style.display = 'block';
+      document.getElementById('tabelaWrapper').style.display = 'none';
+      document.getElementById('vazio').style.display = 'none';
+
+      try {
+        const params = new URLSearchParams();
+        if (dataInicial) params.append('data_inicial', dataInicial);
+        if (dataFinal) params.append('data_final', dataFinal);
+        if (usuario) params.append('usuario_id', usuario);
+        if (status) params.append('status', status);
+
+        const resp = await fetch(`api/relatorios.php?action=caixa_sessoes&${params.toString()}`);
+        const dados = await resp.json();
+
+        if (dados.sucesso && dados.dados) {
+          todosOsDados = dados.dados;
+          renderizarTabela();
+          atualizarResumos();
+          carregarUsuarios();
+          renderizarGrafico();
+        } else {
+          mostrarVazio();
+        }
+      } catch (err) {
+        console.error('Erro:', err);
+        mostrarVazio();
+      } finally {
+        document.getElementById('carregando').style.display = 'none';
+      }
+    }
+
+    function renderizarTabela() {
+      const corpo = document.getElementById('corpoTabela');
+      corpo.innerHTML = '';
+
+      if (todosOsDados.length === 0) {
+        mostrarVazio();
+        return;
+      }
+
+      todosOsDados.forEach(linha => {
+        const aberturaDt = new Date(linha.abertura_caixa);
+        const aberturaFormatada = aberturaDt.toLocaleString('pt-BR');
+        
+        const fechamentoDt = linha.fechamento_caixa ? new Date(linha.fechamento_caixa) : null;
+        const fechamentoFormatado = fechamentoDt ? fechamentoDt.toLocaleString('pt-BR') : '-';
+        
+        const metricas = calcularMetricas(linha);
+        const valorAbertura = metricas.valorAbertura;
+        const totalVendas = metricas.totalVendas;
+        const valorFechamento = metricas.valorFechamento;
+        const lucro = metricas.lucro;
+        
+        const statusBadge = linha.status === 'aberto'
+          ? '<span class="badge badge-aberto">Aberto</span>'
+          : '<span class="badge badge-fechado">Fechado</span>';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#${linha.id_sessao}</strong></td>
+          <td>${linha.login_usuario}</td>
+          <td>${aberturaFormatada}</td>
+          <td class="valor-moeda">${formatarMoeda(valorAbertura)}</td>
+          <td class="valor-moeda">${formatarMoeda(totalVendas)}</td>
+          <td>${fechamentoFormatado}</td>
+          <td class="valor-moeda">${metricas.sessaoFechada ? formatarMoeda(valorFechamento) : '-'}</td>
+          <td style="color: ${lucro === null ? '#95a5a6' : (lucro >= 0 ? '#27ae60' : '#e74c3c')}; font-weight: 600;">
+            ${lucro === null ? '-' : formatarMoeda(lucro)}
+          </td>
+          <td>${statusBadge}</td>
+          <td class="acoes">
+            <button class="btn-sm btn-sm-info" onclick="verDetalhes(${linha.id_sessao})">Ver</button>
+            ${linha.status === 'aberto' ? `<button class="btn-sm btn-sm-delete" onclick="fecharManualmente(${linha.id_sessao})">Fechar</button>` : ''}
+          </td>
+        `;
+        corpo.appendChild(tr);
+      });
+
+      document.getElementById('tabelaWrapper').style.display = 'block';
+    }
+
+    function atualizarResumos() {
+      const total = todosOsDados.length;
+      const totalAbertoSum = todosOsDados.reduce((sum, item) => sum + calcularMetricas(item).valorAbertura, 0);
+      const totalVendasSum = todosOsDados.reduce((sum, item) => sum + calcularMetricas(item).totalVendas, 0);
+      const lucrosFechados = todosOsDados
+        .map(calcularMetricas)
+        .filter(item => item.lucro !== null)
+        .map(item => item.lucro);
+
+      document.getElementById('totalSessoes').textContent = total;
+      document.getElementById('totalAberto').textContent = formatarMoeda(totalAbertoSum);
+      document.getElementById('totalVendas').textContent = formatarMoeda(totalVendasSum);
+      
+      const lucroMedia = lucrosFechados.length > 0
+        ? lucrosFechados.reduce((sum, valor) => sum + valor, 0) / lucrosFechados.length
+        : 0;
+      document.getElementById('diferenca').textContent = formatarMoeda(lucroMedia);
+    }
+
+    function renderizarGrafico() {
+      if (todosOsDados.length === 0) {
+        document.getElementById('graficoContainer').style.display = 'none';
+        return;
+      }
+
+      // Agrupar por data
+      const porData = {};
+      todosOsDados.forEach(item => {
+        const data = new Date(item.abertura_caixa).toLocaleDateString('pt-BR');
+        if (!porData[data]) {
+          porData[data] = { abertura: 0, vendas: 0, fechamento: 0 };
+        }
+        porData[data].abertura += parseFloat(item.valor_abertura || 0);
+        porData[data].vendas += parseFloat(item.total_vendas || 0);
+        porData[data].fechamento += parseFloat(item.valor_fechamento || 0);
+      });
+
+      const labels = Object.keys(porData);
+      const aberturas = labels.map(d => porData[d].abertura);
+      const vendas = labels.map(d => porData[d].vendas);
+      const fechamentos = labels.map(d => porData[d].fechamento);
+
+      document.getElementById('graficoContainer').style.display = 'block';
+
+      const ctx = document.getElementById('grafico').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Abertura',
+              data: aberturas,
+              borderColor: '#3498db',
+              backgroundColor: 'rgba(52, 152, 219, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Vendas',
+              data: vendas,
+              borderColor: '#27ae60',
+              backgroundColor: 'rgba(39, 174, 96, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Fechamento',
+              data: fechamentos,
+              borderColor: '#ff7a45',
+              backgroundColor: 'rgba(255, 122, 69, 0.1)',
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Valores (R$)'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function carregarUsuarios() {
+      try {
+        const usuarios = [...new Set(todosOsDados.map(d => ({ id: d.id_usuario, nome: d.login_usuario })))];
+        const select = document.getElementById('usuarioFiltro');
+        const valorAnterior = select.value;
+
+        const opçõesHTML = usuarios.map(u => 
+          `<option value="${u.id}">${u.nome}</option>`
+        ).join('');
+        
+        select.innerHTML = '<option value="">Todos os usuários</option>' + opçõesHTML;
+        select.value = valorAnterior;
+      } catch (err) {
+        console.error('Erro ao carregar usuários:', err);
+      }
+    }
+
+    function mostrarVazio() {
+      document.getElementById('tabelaWrapper').style.display = 'none';
+      document.getElementById('vazio').style.display = 'block';
+      document.getElementById('carregando').style.display = 'none';
+    }
+
+    function verDetalhes(sessaoId) {
+      const item = todosOsDados.find(d => d.id_sessao === sessaoId);
+      if (!item) return;
+
+      const metricas = calcularMetricas(item);
+      const valorAbertura = metricas.valorAbertura;
+      const totalVendas = metricas.totalVendas;
+      const valorFechamento = metricas.valorFechamento;
+      const lucro = metricas.lucro;
+
+      alert(`
+Sessão #${item.id_sessao}
+Usuário: ${item.login_usuario}
+Abertura: ${new Date(item.abertura_caixa).toLocaleString('pt-BR')}
+    Valor Abertura: ${formatarMoeda(valorAbertura)}
+    Total de Vendas: ${formatarMoeda(totalVendas)}
+    Valor Esperado no Caixa: ${formatarMoeda(metricas.valorEsperado)}
+    Valor de Fechamento: ${metricas.sessaoFechada ? formatarMoeda(valorFechamento) : '-'}
+    Lucro (Fechamento - Abertura): ${lucro === null ? '-' : formatarMoeda(lucro)}
+    Diferença de Caixa: ${metricas.diferencaCaixa === null ? '-' : formatarMoeda(metricas.diferencaCaixa)}
+Observações: ${item.observacoes || 'Nenhuma'}
+Status: ${item.status}
+      `);
+    }
+
+    async function fecharManualmente(sessaoId) {
+      if (!confirm('Deseja fechar esta sessão de caixa?')) return;
+
+      const valor = prompt('Valor de fechamento (R$):');
+      if (!valor) return;
+
+      const obs = prompt('Observações:') || '';
+
+      try {
+        const resp = await fetch('api/caixa.php?action=fechar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessao_id: sessaoId,
+            valor_fechamento: parseFloat(valor.replace(',', '.')),
+            observacoes: obs
+          })
+        });
+
+        const resultado = await resp.json();
+        if (resultado.sucesso) {
+          alert('✓ Caixa fechado com sucesso!');
+          carregarRelatorio();
+        } else {
+          alert('❌ Erro: ' + resultado.mensagem);
+        }
+      } catch (err) {
+        alert('❌ Erro ao fechar caixa: ' + err.message);
+      }
+    }
+
+    function exportarPDF() {
+      const JsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : window.jsPDF;
+      if (!JsPDF || !JsPDF.API || typeof JsPDF.API.autoTable !== 'function') {
+        alert('Biblioteca PDF não carregada. Atualize a página.');
+        return;
+      }
+
+      const doc = new JsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('Relatório Detalhado de Caixa', 14, 16);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 14, 23);
+
+      const rows = todosOsDados.map(item => {
+        const metricas = calcularMetricas(item);
+        return [
+          `#${item.id_sessao}`,
+          item.login_usuario,
+          new Date(item.abertura_caixa).toLocaleString('pt-BR'),
+          `R$ ${metricas.valorAbertura.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `R$ ${metricas.totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          item.fechamento_caixa ? new Date(item.fechamento_caixa).toLocaleString('pt-BR') : '-',
+          metricas.sessaoFechada ? `R$ ${metricas.valorFechamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-',
+          metricas.lucro === null ? '-' : `R$ ${metricas.lucro.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          item.status
+        ];
+      });
+
+      doc.autoTable({
+        startY: 30,
+        head: [['Sessão', 'Usuário', 'Abertura', 'Valor Abertura', 'Total de Vendas', 'Fechamento', 'Valor Fechamento', 'Lucro', 'Status']],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [255, 122, 69] }
+      });
+
+      doc.save(`relatorio-caixa-${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+
+    function imprimirRelatorio() {
+      const janela = window.open('', '_blank');
+      let html = '<table style="width: 100%; border-collapse: collapse;"><thead><tr>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Sessão</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Usuário</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Abertura</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Valor Abertura</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Total de Vendas</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Fechamento</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Valor Fechamento</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Lucro</th>';
+      html += '</tr></thead><tbody>';
+
+      todosOsDados.forEach(item => {
+        const metricas = calcularMetricas(item);
+        const valorAbertura = metricas.valorAbertura;
+        const totalVendas = metricas.totalVendas;
+        const valorFechamento = metricas.valorFechamento;
+        const lucro = metricas.lucro;
+
+        html += `<tr>
+          <td style="border: 1px solid #000; padding: 8px;">#${item.id_sessao}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${item.login_usuario}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${new Date(item.abertura_caixa).toLocaleString('pt-BR')}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${formatarMoeda(valorAbertura)}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${formatarMoeda(totalVendas)}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${item.fechamento_caixa ? new Date(item.fechamento_caixa).toLocaleString('pt-BR') : '-'}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${metricas.sessaoFechada ? formatarMoeda(valorFechamento) : '-'}</td>
+          <td style="border: 1px solid #000; padding: 8px; color: ${lucro === null ? '#95a5a6' : (lucro >= 0 ? '#27ae60' : '#e74c3c')}; font-weight: 600;">${lucro === null ? '-' : formatarMoeda(lucro)}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      janela.document.write('<html><body>' + html + '</body></html>');
+      janela.document.close();
+      janela.print();
+    }
+
+    function voltarDashboard() {
+      window.location.href = 'dashboard.html';
+    }
+
+    // Definir data padrão (últimos 30 dias)
+    window.addEventListener('load', function() {
+      const hoje = new Date();
+      const trinta = new Date(hoje);
+      trinta.setDate(trinta.getDate() - 30);
+
+      document.getElementById('dataInicial').valueAsDate = trinta;
+      document.getElementById('dataFinal').valueAsDate = hoje;
+
+      carregarRelatorio();
+    });
+  </script>
+</body>
+</html>

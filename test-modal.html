@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste Modal</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+    }
+    
+    #modalAberturaCaixa {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(0,0,0,0.7) !important;
+      z-index: 10000 !important;
+      display: none;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    #modalAberturaCaixa > div {
+      background: white !important;
+      border-radius: 16px !important;
+      padding: 32px !important;
+      max-width: 450px !important;
+      width: 90% !important;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4) !important;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div style="padding: 20px;">
+    <h1>Teste do Modal</h1>
+    <p>Clique no botão abaixo para ver o modal:</p>
+    <button onclick="document.getElementById('modalAberturaCaixa').style.display = 'flex';">Abrir Modal</button>
+    <button onclick="document.getElementById('modalAberturaCaixa').style.display = 'none';">Fechar Modal</button>
+  </div>
+
+  <!-- MODAL DE ABERTURA DE CAIXA -->
+  <div id="modalAberturaCaixa">
+    <div>
+      <h2 style="margin: 0 0 8px; color: #333; font-size: 24px;">Abertura de Caixa</h2>
+      <p style="margin: 0 0 24px; color: #666; font-size: 14px;">Informe o valor inicial para começar o dia</p>
+      
+      <form id="formAberturaCaixaLogin" onsubmit="event.preventDefault(); alert('Form enviado!'); return false;">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 14px;">Valor de Abertura (R$)</label>
+          <input type="text" id="valorAberturaLogin" placeholder="0,00" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box;" required>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 14px;">Observações (opcional)</label>
+          <input type="text" id="obsAberturaLogin" placeholder="Ex: Trocos iniciais..." style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+          <button type="button" style="flex: 1; padding: 12px; background: #ecf0f1; color: #666; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="document.getElementById('modalAberturaCaixa').style.display = 'none';">Cancelar</button>
+          <button type="submit" style="flex: 1; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    console.log('Página de teste carregada');
+    console.log('Modal DOM:', document.getElementById('modalAberturaCaixa'));
+  </script>
+</body>
+</html>

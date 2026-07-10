@@ -138,6 +138,45 @@ if ($method === 'GET' && $action === 'listar') {
     exit;
 }
 
+if ($method === 'GET' && $action === 'listar_por_sessao') {
+    $sessaoId = (int)($_GET['sessao_id'] ?? 0);
+    
+    if ($sessaoId <= 0) {
+        json_error('ID da sessão inválido');
+    }
+    
+    $sql = "SELECT v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia,
+                   COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor,
+                   COALESCE(v.valor_total, SUM(iv.subtotal), 0) as valor_total
+            FROM vendas v
+            LEFT JOIN itens_venda iv ON iv.id_venda = v.id_venda
+            LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
+            WHERE v.sessao_caixa_id = ?
+            GROUP BY v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia, vendedor, v.valor_total
+            ORDER BY v.data_hora DESC";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $sessaoId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $out = [];
+    while ($r = $result->fetch_assoc()) {
+        $out[] = [
+            'id_venda' => (int)$r['id_venda'],
+            'numero_venda_turno' => (int)($r['numero_venda_turno'] ?? 0),
+            'numero_venda_dia' => (int)($r['numero_venda_dia'] ?? 0),
+            'vendedor' => $r['vendedor'],
+            'data_hora' => $r['data_hora'],
+            'valor_total' => (float)($r['valor_total'] ?? 0)
+        ];
+    }
+    $stmt->close();
+    
+    echo json_encode(['sucesso'=>true,'dados'=>$out]);
+    exit;
+}
+
 if ($method === 'GET' && $action === 'detalhes') {
     $idVenda = (int)($_GET['id'] ?? 0);
     if ($idVenda <= 0) {

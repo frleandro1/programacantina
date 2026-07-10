@@ -160,6 +160,31 @@
     .login-form.hide {
       display: none;
     }
+    
+    /* CSS para o modal de abertura de caixa */
+    #modalAberturaCaixa {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(0,0,0,0.7) !important;
+      z-index: 10000 !important;
+      display: none;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    #modalAberturaCaixa > div {
+      background: white !important;
+      border-radius: 16px !important;
+      padding: 32px !important;
+      max-width: 450px !important;
+      width: 90% !important;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4) !important;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
 
     @media (max-width: 768px) {
       body {
@@ -231,6 +256,33 @@
         <div class="spinner"></div>
         <p style="color: #999; font-size: 12px; margin-top: 10px;">Redirecionando...</p>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ABERTURA DE CAIXA -->
+  <div id="modalAberturaCaixa" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; padding: 32px; max-width: 450px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.4);">
+      <h2 style="margin: 0 0 8px; color: #333; font-size: 24px;">💰 Abertura de Caixa</h2>
+      <p style="margin: 0 0 24px; color: #666; font-size: 14px;">Informe o valor inicial para começar o dia</p>
+      
+      <form id="formAberturaCaixaLogin" onsubmit="processarAberturaCaixa(event); return false;">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 14px;">Valor de Abertura (R$)</label>
+          <input type="text" id="valorAberturaLogin" placeholder="0,00" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box;" required>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 14px;">Observações (opcional)</label>
+          <input type="text" id="obsAberturaLogin" placeholder="Ex: Trocos iniciais..." style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        </div>
+        
+        <div id="erroAbertura" style="display: none; background: #fadbd8; border-left: 4px solid #e74c3c; color: #c0392b; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 13px;"></div>
+        
+        <div style="display: flex; gap: 12px;">
+          <button type="button" style="flex: 1; padding: 12px; background: #ecf0f1; color: #666; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="cancelarAberturaCaixa()">Cancelar</button>
+          <button type="submit" style="flex: 1; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#229954'" onmouseout="this.style.background='#27ae60'">Confirmar</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -349,6 +401,13 @@
           localStorage.setItem('token', data.token || 'temp-token');
           localStorage.setItem('username', username);
           localStorage.setItem('userType', userType);
+          localStorage.setItem('userId', data.usuario?.id || '');
+          localStorage.setItem('userName', userName);
+          
+          // Salvar sessão de caixa
+          if (data.sessao_caixa_id) {
+            localStorage.setItem('sessaoCaixaId', data.sessao_caixa_id);
+          }
           
           // Mostrar tela de sucesso
           document.getElementById('loginForm').classList.add('hide');
@@ -357,12 +416,16 @@
           document.getElementById('roleBadge').textContent = `👤 ${roleLabel}`;
           document.getElementById('roleBadge').className = `role-badge ${badgeClass}`;
           
-          // Redirecionar após 2 segundos
+          // Para vendedores, mostrar modal de abertura de caixa
+          // Para admins, ir direto para admin.html
           setTimeout(() => {
+            console.log('setTimeout chamado, userType:', userType);
             if (userType === 'admin') {
               window.location.href = 'admin.html';
             } else {
-              window.location.href = 'vendas.html';
+              // Mostrar modal de abertura de caixa
+              console.log('Tentando mostrar modal...');
+              mostrarModalAberturaCaixa();
             }
           }, 2000);
         } else {
@@ -374,6 +437,154 @@
         errorMsg.style.display = 'block';
       }
     });
+
+    // ===== FUNÇÕES DO MODAL DE ABERTURA DE CAIXA =====
+    
+    function mostrarModalAberturaCaixa() {
+      console.log('=== Abrindo modal de abertura de caixa ===');
+      
+      // Verificar se elemento existe
+      const modal = document.getElementById('modalAberturaCaixa');
+      console.log('Modal encontrado:', !!modal);
+      
+      if (!modal) {
+        console.error('❌ Modal não encontrado no DOM!');
+        alert('Erro: Modal de abertura de caixa não foi encontrado. Verifique o código HTML.');
+        return;
+      }
+      
+      // Esconder tela de sucesso
+      const successScreen = document.getElementById('successScreen');
+      if (successScreen) {
+        successScreen.style.display = 'none';
+        console.log('Tela de sucesso escondida');
+      }
+      
+      // Mostrar modal (com display flex)
+      modal.style.display = 'flex';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+      console.log('✅ Modal exibido:', modal.style.display);
+      
+      // Adicionar formatação ao input (apenas uma vez)
+      const inputValor = document.getElementById('valorAberturaLogin');
+      if (inputValor && !inputValor.hasAttribute('data-listener-added')) {
+        inputValor.setAttribute('data-listener-added', 'true');
+        inputValor.addEventListener('input', function(e) {
+          let valor = e.target.value.replace(/\D/g, '');
+          if (valor) {
+            valor = (parseInt(valor) / 100).toLocaleString('pt-BR', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+          }
+          e.target.value = valor;
+        });
+        console.log('Formatação de moeda adicionada ao input');
+      }
+      
+      // Verificar se já tem caixa aberto (opcional, não bloqueia)
+      const userId = localStorage.getItem('userId');
+      console.log('userId:', userId);
+      
+      if (userId) {
+        fetch(`api/abertura-caixa.php?action=verificar_hoje&usuario_id=${userId}`)
+          .then(r => r.json())
+          .then(d => {
+            console.log('Resposta verificar_hoje:', d);
+            if (d.sucesso && d.dados) {
+              const sessao = d.dados;
+              console.log('Sessão encontrada:', sessao);
+              
+              // Se valor_abertura já foi preenchido, vai direto para vendas
+              if (sessao.valor_abertura && parseFloat(sessao.valor_abertura) > 0) {
+                console.log('Caixa já foi aberto com valor, redirecionando para vendas');
+                localStorage.setItem('sessaoCaixaId', sessao.id_sessao);
+                localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
+                localStorage.setItem('valorAberturaAtual', sessao.valor_abertura || '0');
+                setTimeout(() => window.location.href = 'vendas.html', 500);
+              } else {
+                // Se existe mas valor_abertura é vazio/zero, mostra o modal para preencher
+                console.log('Sessão existe mas precisa preencher valor_abertura');
+                localStorage.setItem('sessaoCaixaId', sessao.id_sessao);
+              }
+            } else {
+              console.log('Nenhuma sessão encontrada para hoje');
+            }
+          })
+          .catch(e => console.error('Erro ao verificar caixa:', e));
+      }
+    }
+
+    async function processarAberturaCaixa(e) {
+      e.preventDefault();
+      
+      const valorInput = document.getElementById('valorAberturaLogin').value;
+      const obsInput = document.getElementById('obsAberturaLogin').value;
+      const erroDiv = document.getElementById('erroAbertura');
+      const sessaoCaixaId = localStorage.getItem('sessaoCaixaId');
+      const userId = localStorage.getItem('userId');
+      
+      if (!valorInput || valorInput === '0,00') {
+        erroDiv.textContent = 'Informe um valor de abertura válido';
+        erroDiv.style.display = 'block';
+        return;
+      }
+      
+      if (!sessaoCaixaId || !userId) {
+        erroDiv.textContent = 'Sessão inválida. Faça login novamente.';
+        erroDiv.style.display = 'block';
+        return;
+      }
+      
+      const valor = parseFloat(valorInput.replace(',', '.'));
+      
+      if (isNaN(valor) || valor < 0) {
+        erroDiv.textContent = 'Valor inválido';
+        erroDiv.style.display = 'block';
+        return;
+      }
+      
+      try {
+        const res = await fetch('api/abertura-caixa.php?action=registrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessao_id: parseInt(sessaoCaixaId, 10),
+            usuario_id: parseInt(userId, 10),
+            valor_abertura: valor,
+            observacoes: obsInput
+          })
+        });
+        
+        const resultado = await res.json();
+        
+        if (resultado.sucesso) {
+          localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
+          localStorage.setItem('valorAberturaAtual', valor.toString());
+          window.location.href = 'vendas.html';
+        } else {
+          erroDiv.textContent = resultado.mensagem || 'Erro ao abrir caixa';
+          erroDiv.style.display = 'block';
+        }
+      } catch (err) {
+        erroDiv.textContent = 'Erro ao conectar: ' + err.message;
+        erroDiv.style.display = 'block';
+      }
+    }
+
+    function cancelarAberturaCaixa() {
+      if (confirm('Deseja voltar para login?')) {
+        localStorage.removeItem('usuario');
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userType');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('sessaoCaixaId');
+        window.location.href = 'login-menu.html';
+      }
+    }
   </script>
 </body>
 </html>

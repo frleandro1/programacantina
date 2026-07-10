@@ -297,6 +297,10 @@ tbody tr:hover {
       <span class="btn-menu-icon"></span>
       Logins e Abertura de Caixa
     </button>
+    <button class="btn-menu" onclick="window.location.href='relatorios-caixa.html'">
+      <span class="btn-menu-icon"></span>
+      📊 Relatório Detalhado de Caixa
+    </button>
   </div>
 
   <!-- RELATÓRIO 1: RESUMO DE VENDAS -->
@@ -309,7 +313,7 @@ tbody tr:hover {
         <label>Data Fim: <input type="date" id="fimVendas"></label>
         <button class="btn btn-primary" onclick="loadResumoVendas()">Filtrar</button>
         <button class="btn" onclick="imprimirResumoVendasTermica()">Imprimir Térmica</button>
-        <button class="btn" onclick="exportarVendasCSV()">Exportar CSV</button>
+        <button class="btn" onclick="exportarVendasPDF()">Exportar PDF</button>
       </div>
       <canvas id="chartVendas" width="400" height="200"></canvas>
       <table>
@@ -355,7 +359,7 @@ tbody tr:hover {
         <label>Atendente: <select id="filtroAtendente"><option value="">Todos</option></select></label>
         <button class="btn btn-primary" onclick="loadResumoDetalhes()">Filtrar</button>
         <button class="btn" onclick="imprimirDetalhesTermica()">Imprimir Térmica</button>
-        <button class="btn" onclick="exportarDetalhesCSV()">Exportar CSV</button>
+        <button class="btn" onclick="exportarDetalhesPDF()">Exportar PDF</button>
       </div>
       <table>
         <thead>
@@ -418,7 +422,7 @@ tbody tr:hover {
         <label>Atendente: <select id="filtroUsuarioCaixa"><option value="">Todos</option></select></label>
         <button class="btn btn-primary" onclick="loadRelatorioCaixa()">Filtrar</button>
         <button class="btn" onclick="imprimirCaixaTermica()">Imprimir Térmica</button>
-        <button class="btn" onclick="exportarCaixaCSV()">Exportar CSV</button>
+        <button class="btn" onclick="exportarCaixaPDF()">Exportar PDF</button>
         <button class="btn" onclick="deletarTodosLogins()" style="background:#c62828;">Deletar Todos Logins</button>
       </div>
       <table>
@@ -453,25 +457,27 @@ tbody tr:hover {
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script>
 // Fallback para evitar ReferenceError caso o JS principal esteja em cache ou falhe ao carregar.
 window.loadResumoVendas = window.loadResumoVendas || function() {};
 window.loadResumoProducao = window.loadResumoProducao || function() {};
 window.loadResumoDetalhes = window.loadResumoDetalhes || function() {};
 window.loadRelatorioCaixa = window.loadRelatorioCaixa || function() {};
-window.exportarVendasCSV = window.exportarVendasCSV || function() {
+window.exportarVendasPDF = window.exportarVendasPDF || function() {
   alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
 };
-window.exportarProducaoCSV = window.exportarProducaoCSV || function() {
+window.exportarProducaoPDF = window.exportarProducaoPDF || function() {
   alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
 };
-window.exportarDetalhesCSV = window.exportarDetalhesCSV || function() {
+window.exportarDetalhesPDF = window.exportarDetalhesPDF || function() {
   alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
 };
 window.imprimirDetalhesTermica = window.imprimirDetalhesTermica || function() {
   alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
 };
-window.exportarCaixaCSV = window.exportarCaixaCSV || function() {
+window.exportarCaixaPDF = window.exportarCaixaPDF || function() {
   alert('Módulo de relatórios ainda carregando. Atualize a página (Ctrl+F5).');
 };
 window.imprimirCaixaTermica = window.imprimirCaixaTermica || function() {
@@ -605,6 +611,6 @@ window.addEventListener('load', () => {
   mostrarModalAuth();
 });
 </script>
-<script src="js/relatorios.js?v=20260701_deleteall1"></script>
+<script src="js/relatorios.js?v=20260708_pdf1"></script>
 </body>
 </html>

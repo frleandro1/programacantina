@@ -9,6 +9,50 @@
   let cacheDetalhes = [];
   let cacheCaixa = [];
 
+  function obterJsPDF() {
+    if (window.jspdf && window.jspdf.jsPDF) {
+      return window.jspdf.jsPDF;
+    }
+    if (window.jsPDF) {
+      return window.jsPDF;
+    }
+    throw new Error('Biblioteca PDF não carregada. Atualize a página.');
+  }
+
+  function obterAutoTable() {
+    if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && typeof window.jspdf.jsPDF.API.autoTable === 'function') {
+      return true;
+    }
+    if (window.autoTable) {
+      return true;
+    }
+    return false;
+  }
+
+  function baixarPdf(doc, filename) {
+    doc.save(filename);
+  }
+
+  function criarPdfBase(titulo, subtitulo) {
+    const JsPDF = obterJsPDF();
+    const doc = new JsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(titulo, 14, 16);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    if (subtitulo) {
+      doc.text(subtitulo, 14, 23);
+    }
+    return doc;
+  }
+
+  function garantirAutoTable() {
+    if (!obterAutoTable()) {
+      throw new Error('Biblioteca de tabelas PDF não carregada. Atualize a página.');
+    }
+  }
+
   async function fetchJson(url) {
     const response = await fetch(url, { cache: 'no-store' });
     return response.json();
@@ -17,23 +61,6 @@
   function getVal(id) {
     const el = document.getElementById(id);
     return el ? el.value : '';
-  }
-
-  function toCsv(rows, headers) {
-    const esc = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-    const head = headers.map(esc).join(',');
-    const body = rows.map((row) => row.map(esc).join(',')).join('\n');
-    return head + '\n' + body;
-  }
-
-  function downloadCsv(filename, csv) {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   function hojeISO() {
@@ -495,9 +522,23 @@
     }
   }
 
-  function exportarVendasCSV() {
-    const rows = cacheResumoVendas.map((r) => [r.dia, r.pedidos, Number(r.total || 0).toFixed(2)]);
-    downloadCsv('resumo_vendas.csv', toCsv(rows, ['Data', 'Total Vendas', 'Valor Total']));
+  function exportarVendasPDF() {
+    try {
+      garantirAutoTable();
+      const doc = criarPdfBase('Resumo de Vendas', `Período: ${getVal('inicioVendas') || '-'} a ${getVal('fimVendas') || '-'}`);
+      const rows = cacheResumoVendas.map((r) => [r.dia, String(r.pedidos || 0), moeda(r.total)]);
+      doc.autoTable({
+        startY: 30,
+        head: [['Data', 'Total Vendas', 'Valor Total']],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [255, 122, 69] }
+      });
+      baixarPdf(doc, `resumo_vendas_${hojeISO()}.pdf`);
+    } catch (err) {
+      alert(err.message || 'Falha ao gerar PDF de vendas');
+    }
   }
 
   async function imprimirResumoVendasTermica() {
@@ -528,9 +569,23 @@
     }
   }
 
-  function exportarProducaoCSV() {
-    const rows = cacheResumoProducao.map((r) => [r.nome, r.quantidade]);
-    downloadCsv('producao_por_produto.csv', toCsv(rows, ['Produto', 'Quantidade Vendida']));
+  function exportarProducaoPDF() {
+    try {
+      garantirAutoTable();
+      const doc = criarPdfBase('Produção por Produto', `Período: ${getVal('inicioProducao') || '-'} a ${getVal('fimProducao') || '-'}`);
+      const rows = cacheResumoProducao.map((r) => [r.nome, String(r.quantidade || 0), moeda(r.total)]);
+      doc.autoTable({
+        startY: 30,
+        head: [['Produto', 'Quantidade Vendida', 'Valor Total']],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [255, 122, 69] }
+      });
+      baixarPdf(doc, `producao_por_produto_${hojeISO()}.pdf`);
+    } catch (err) {
+      alert(err.message || 'Falha ao gerar PDF de produção');
+    }
   }
 
   async function imprimirProducaoTermica() {
@@ -575,9 +630,23 @@
     }
   }
 
-  function exportarDetalhesCSV() {
-    const rows = cacheDetalhes.map((r) => [r.pedido, r.data, r.atendente || '', r.produto, r.quantidade, Number(r.subtotal || 0).toFixed(2)]);
-    downloadCsv('detalhes_vendas.csv', toCsv(rows, ['Numero', 'Data', 'Atendente', 'Produto', 'Qtd', 'Valor']));
+  function exportarDetalhesPDF() {
+    try {
+      garantirAutoTable();
+      const doc = criarPdfBase('Detalhes de Vendas', `Período: ${getVal('inicioDetalhes') || '-'} a ${getVal('fimDetalhes') || '-'}`);
+      const rows = cacheDetalhes.map((r) => [String(r.pedido || ''), r.data || '', r.atendente || '', r.produto || '', String(r.quantidade || 0), moeda(r.subtotal)]);
+      doc.autoTable({
+        startY: 30,
+        head: [['Número', 'Data', 'Atendente', 'Produto', 'Qtd', 'Valor']],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [255, 122, 69] }
+      });
+      baixarPdf(doc, `detalhes_vendas_${hojeISO()}.pdf`);
+    } catch (err) {
+      alert(err.message || 'Falha ao gerar PDF de detalhes');
+    }
   }
 
   async function imprimirDetalhesTermica() {
@@ -608,17 +677,31 @@
     }
   }
 
-  function exportarCaixaCSV() {
-    const rows = cacheCaixa.map((r) => [
-      r.sessao_id,
-      r.nome || r.login || '',
-      r.abertura_caixa || '',
-      r.fechamento_caixa || '',
-      r.status || '',
-      r.total_vendas || 0,
-      Number(r.valor_total || 0).toFixed(2)
-    ]);
-    downloadCsv('logins_abertura_caixa.csv', toCsv(rows, ['Sessao', 'Usuario', 'Abertura', 'Fechamento', 'Status', 'Vendas', 'Total']));
+  function exportarCaixaPDF() {
+    try {
+      garantirAutoTable();
+      const doc = criarPdfBase('Logins e Abertura de Caixa', `Período: ${getVal('inicioCaixa') || '-'} a ${getVal('fimCaixa') || '-'}`);
+      const rows = cacheCaixa.map((r) => [
+        `#${r.sessao_id || ''}`,
+        r.nome || r.login || '',
+        r.abertura_caixa || '',
+        r.fechamento_caixa || '-',
+        r.status === 'aberto' ? 'Aberto' : 'Fechado',
+        String(r.total_vendas || 0),
+        moeda(r.valor_total)
+      ]);
+      doc.autoTable({
+        startY: 30,
+        head: [['Sessão', 'Usuário', 'Abertura', 'Fechamento', 'Status', 'Vendas', 'Total']],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [255, 122, 69] }
+      });
+      baixarPdf(doc, `logins_abertura_caixa_${hojeISO()}.pdf`);
+    } catch (err) {
+      alert(err.message || 'Falha ao gerar PDF de caixa');
+    }
   }
 
   async function imprimirCaixaTermica() {
@@ -819,12 +902,12 @@
   window.loadResumoDetalhes = loadResumoDetalhes;
   window.loadRelatorioCaixa = loadRelatorioCaixa;
   window.imprimirResumoVendasTermica = imprimirResumoVendasTermica;
-  window.exportarVendasCSV = exportarVendasCSV;
-  window.exportarProducaoCSV = exportarProducaoCSV;
+  window.exportarVendasPDF = exportarVendasPDF;
+  window.exportarProducaoPDF = exportarProducaoPDF;
   window.imprimirProducaoTermica = imprimirProducaoTermica;
-  window.exportarDetalhesCSV = exportarDetalhesCSV;
+  window.exportarDetalhesPDF = exportarDetalhesPDF;
   window.imprimirDetalhesTermica = imprimirDetalhesTermica;
-  window.exportarCaixaCSV = exportarCaixaCSV;
+  window.exportarCaixaPDF = exportarCaixaPDF;
   window.imprimirCaixaTermica = imprimirCaixaTermica;
 
   document.addEventListener('DOMContentLoaded', () => {

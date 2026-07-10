@@ -464,7 +464,7 @@
                 document.getElementById('password').value = '';
                 document.getElementById('password').focus();
             } else {
-                infoBox.innerHTML = '<strong>Credenciais de Teste (Vendedor):</strong>joao / vendedor123<br>maria / vendedor123<br>pedro / vendedor123';
+                infoBox.innerHTML = '<strong>Credenciais de Teste (Vendedor):</strong>Lefro1 / 123456<br>Lefro2 / 123456';
                 document.getElementById('username').focus();
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
@@ -649,11 +649,22 @@
                     localStorage.setItem('usuario', JSON.stringify(data.usuario));
                     localStorage.setItem('token', data.token || 'temp-token-' + Date.now());
                     localStorage.setItem('username', username);
-                        const tipoLogado = normalizarTipoUsuario(data.usuario?.tipo || tipoAtual);
-                        localStorage.setItem('userType', tipoLogado);
+                    
+                    if (data.usuario && (data.usuario.id_usuario || data.usuario.id)) {
+                        localStorage.setItem('userId', String(data.usuario.id_usuario || data.usuario.id));
+                    }
+                    
+                    const tipoLogado = normalizarTipoUsuario(data.usuario?.tipo || tipoAtual);
+                    localStorage.setItem('userType', tipoLogado);
+                    
                     if (data.sessao_caixa_id) {
                         localStorage.setItem('sessaoCaixaId', String(data.sessao_caixa_id));
                         localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
+                    } else {
+                        // Se não veio sessaoCaixaId da API, remove do localStorage
+                        localStorage.removeItem('sessaoCaixaId');
+                        localStorage.removeItem('aberturaCaixaEm');
+                        localStorage.removeItem('valorAberturaAtual');
                     }
 
                     setTimeout(() => {

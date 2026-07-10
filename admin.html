@@ -994,6 +994,11 @@ input[type=\"color\"] {
       <li><button class="menu-btn" data-section="configuracoes">⚙️ Configurações</button></li>
       <li><a href="customizador-cupom.html">🧾 Customizar Cupom</a></li>
     </ul>
+
+    <h3 style="margin-top: 30px;">Limpeza</h3>
+    <ul class="sidebar-menu">
+      <li><a href="zerar-sessoes.html">🗑️ Zerar Sessões</a></li>
+    </ul>
   </div>
 
   <div class="main-content">
@@ -1257,7 +1262,7 @@ input[type=\"color\"] {
       <div class="config-grid" style="margin-top: 30px;">
         <div class="config-card">
           <h2>🖨️ Impressora Térmica</h2>
-          <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Configurações de impressão para cupom fiscal</p>
+          <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Configurações de impressão para cupom não fiscal</p>
 
           <div class="form-group">
             <label for="impressoraNome">Nome da Impressora</label>
@@ -1970,7 +1975,12 @@ function mostrarMensagem(elementId, mensagem, tipo) {
 
 function logout() {
   if (confirm('Deseja sair?')) {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('sessaoCaixaId');
+    localStorage.removeItem('aberturaCaixaEm');
     window.location.href = 'login-menu.html';
   }
 }
