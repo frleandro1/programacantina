@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Customizador de Cupom</title>
+  <title>Customizador de Cupom - Cantina IBFC</title>
   <style>
     * {
       box-sizing: border-box;
@@ -202,6 +202,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
 <button id="btnVoltarGlobal" type="button" style="position:fixed;top:14px;right:14px;z-index:9999;padding:10px 16px;border:none;border-radius:10px;background:#111;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);">Voltar</button>
@@ -240,7 +241,7 @@
     </div>
     
     <div class="form-group">
-      <label>Operador/Vendedor</label>
+      <label>Operador/Ministério</label>
       <input type="text" id="vendedor" placeholder="Ex: João Silva" value="">
     </div>
     
@@ -390,7 +391,7 @@ const templates = {
     sepSecao: '----------------------------------------'
   },
   moderno: {
-    nomeCantina: '◆ CANTINA DELÍCIA ◆',
+    nomeCantina: '◆ CANTINA IBFC ◆',
     vendedor: '',
     caixa: '',
     rotuloCupom: 'Recibo',
@@ -398,13 +399,13 @@ const templates = {
     formatoQtd: '{qtd}x R$ {preco}',
     rotuloTotal: 'Valor',
     msg1: 'Obrigado pela confiança!',
-    msg2: 'Siga-nos: @cantinadelicia',
+    msg2: 'Siga-nos: @cantinaibfc',
     msg3: '',
     sepPrincipal: '◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆',
     sepSecao: '◆ ◆ ◆ ◆ ◆ ◆'
   },
   minimal: {
-    nomeCantina: 'CANTINA',
+    nomeCantina: 'CANTINA IBFC',
     vendedor: '',
     caixa: '',
     rotuloCupom: 'Venda',

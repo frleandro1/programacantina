@@ -1,0 +1,122 @@
+@page {
+  size: A4 landscape;
+  margin: 6mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    zoom: var(--print-a4-scale, 0.72);
+  }
+
+  .topbar,
+  .nav,
+  .btn,
+  button,
+  .filters,
+  .filtros,
+  .filtro-bar,
+  .periodo-pills,
+  .acoes-header,
+  .btn-voltar,
+  .menu-relatorios,
+  .no-print {
+    display: none !important;
+  }
+
+  .container,
+  .content-wrapper,
+  .main-content,
+  .relatorio-container.active,
+  .table-responsive,
+  .tabela-wrapper,
+  .rolagem {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  .header,
+  .card,
+  .kpi-card,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .header {
+    margin-bottom: 3mm !important;
+    padding: 0 0 2mm !important;
+    box-shadow: none !important;
+  }
+
+  .card,
+  .tabela-container {
+    margin: 0 0 3mm !important;
+    padding: 3mm !important;
+    border: 0.25mm solid #cbd5e1 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .kpis,
+  .cards-resumo,
+  .grid-2,
+  .grid-principal {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(35mm, 1fr)) !important;
+    gap: 2mm !important;
+    margin-bottom: 3mm !important;
+  }
+
+  .kpi-card,
+  .card-resumo {
+    min-height: 0 !important;
+    padding: 2.5mm !important;
+  }
+
+  table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    white-space: normal !important;
+    font-size: 7pt !important;
+  }
+
+  th,
+  td {
+    padding: 1.2mm 1.4mm !important;
+    line-height: 1.15 !important;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+}

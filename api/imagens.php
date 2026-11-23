@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/headers.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/produto-schema.php';
 
 try {
     require_once __DIR__ . '/../db/config.php';
@@ -72,7 +73,8 @@ function handleUpload($conexao, $uploadDir) {
     }
 
     // Validar se o produto existe
-    $stmt = $conexao->prepare("SELECT id_produto FROM produtos WHERE id_produto = ?");
+    $idColuna = produto_coluna($conexao, ['id_produto', 'id']);
+    $stmt = $conexao->prepare("SELECT {$idColuna} FROM produtos WHERE {$idColuna} = ?");
     $stmt->bind_param("i", $produtoId);
     $stmt->execute();
     
@@ -121,7 +123,8 @@ function handleUpload($conexao, $uploadDir) {
     }
 
     // Deletar imagem anterior se existir
-    $stmt = $conexao->prepare("SELECT imagem FROM produtos WHERE id_produto = ?");
+    $idColuna = produto_coluna($conexao, ['id_produto', 'id']);
+    $stmt = $conexao->prepare("SELECT imagem FROM produtos WHERE {$idColuna} = ?");
     $stmt->bind_param("i", $produtoId);
     $stmt->execute();
     $resultado = $stmt->get_result()->fetch_assoc();
@@ -132,7 +135,7 @@ function handleUpload($conexao, $uploadDir) {
     }
 
     // Atualizar referência no banco de dados
-    $stmt = $conexao->prepare("UPDATE produtos SET imagem = ? WHERE id_produto = ?");
+    $stmt = $conexao->prepare("UPDATE produtos SET imagem = ? WHERE {$idColuna} = ?");
     $stmt->bind_param("si", $nomeArquivo, $produtoId);
     
     if ($stmt->execute()) {
@@ -141,7 +144,7 @@ function handleUpload($conexao, $uploadDir) {
             'sucesso' => true,
             'mensagem' => 'Imagem enviada com sucesso',
             'arquivo' => $nomeArquivo,
-            'url' => '/Cantina/uploads/produtos/' . $nomeArquivo
+            'url' => 'uploads/produtos/' . $nomeArquivo
         ]);
     } else {
         $stmt->close();
@@ -163,13 +166,15 @@ function getImage($conexao) {
         return;
     }
 
-    $stmt = $conexao->prepare("SELECT imagem FROM produtos WHERE id_produto = ?");
+    $idColuna = produto_coluna($conexao, ['id_produto', 'id']);
+    $stmt = $conexao->prepare("SELECT imagem FROM produtos WHERE {$idColuna} = ?");
     $stmt->bind_param("i", $produtoId);
     $stmt->execute();
     $resultado = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$resultado || !$resultado['imagem']) {
+    $imagem = produto_imagem_arquivo((int)$produtoId, $resultado['imagem'] ?? '');
+    if ($imagem === '') {
         http_response_code(404);
         echo json_encode(['sucesso' => false, 'mensagem' => 'Imagem não encontrada']);
         return;
@@ -177,8 +182,8 @@ function getImage($conexao) {
 
     echo json_encode([
         'sucesso' => true,
-        'imagem' => $resultado['imagem'],
-        'url' => '/Cantina/uploads/produtos/' . $resultado['imagem']
+        'imagem' => $imagem,
+        'url' => 'uploads/produtos/' . $imagem
     ]);
 }
 
@@ -194,7 +199,8 @@ function deleteImage($conexao, $uploadDir) {
         return;
     }
 
-    $stmt = $conexao->prepare("SELECT imagem FROM produtos WHERE id_produto = ?");
+    $idColuna = produto_coluna($conexao, ['id_produto', 'id']);
+    $stmt = $conexao->prepare("SELECT imagem FROM produtos WHERE {$idColuna} = ?");
     $stmt->bind_param("i", $produtoId);
     $stmt->execute();
     $resultado = $stmt->get_result()->fetch_assoc();
@@ -212,7 +218,7 @@ function deleteImage($conexao, $uploadDir) {
         @unlink($caminhoArquivo);
     }
 
-    $stmt = $conexao->prepare("UPDATE produtos SET imagem = NULL WHERE id_produto = ?");
+    $stmt = $conexao->prepare("UPDATE produtos SET imagem = NULL WHERE {$idColuna} = ?");
     $stmt->bind_param("i", $produtoId);
     
     if ($stmt->execute()) {
@@ -229,7 +235,8 @@ function deleteImage($conexao, $uploadDir) {
  * Listar todas as imagens de produtos
  */
 function listImages($conexao) {
-    $sql = "SELECT id_produto, nome, imagem FROM produtos WHERE imagem IS NOT NULL AND imagem != '' ORDER BY id_produto";
+    $idColuna = produto_coluna($conexao, ['id_produto', 'id']);
+    $sql = "SELECT {$idColuna} AS id_produto, nome, imagem FROM produtos ORDER BY {$idColuna}";
     
     $stmt = $conexao->prepare($sql);
     if (!$stmt) {
@@ -267,11 +274,15 @@ function listImages($conexao) {
     
     $imagens = [];
     while ($row = $resultado->fetch_assoc()) {
+        $arquivo = produto_imagem_arquivo((int)$row['id_produto'], $row['imagem']);
+        if ($arquivo === '') {
+            continue;
+        }
         $imagens[] = [
             'produto_id' => $row['id_produto'],
             'nome' => $row['nome'],
-            'imagem' => $row['imagem'],
-            'url' => '/Cantina/uploads/produtos/' . $row['imagem']
+            'imagem' => $arquivo,
+            'url' => 'uploads/produtos/' . $arquivo
         ];
     }
     $stmt->close();

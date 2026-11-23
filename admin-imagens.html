@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Gerenciar Imagens de Produtos</title>
+    <title>Gerenciar Imagens de Produtos - Cantina IBFC</title>
     <style>
         :root {
             --brand: #1e5ba8;
@@ -597,12 +597,13 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
     <div class="topbar">
         <div class="brand">
             <img src="LOGO_F.png" alt="Logo Cantina" class="brand-logo">
-            <span>Lefro Cantina</span>
+            <span>Cantina IBFC</span>
         </div>
         <button class="hamburger" id="hamburguerBtn" aria-label="Menu" onclick="toggleNav()">
             <span></span><span></span><span></span>
@@ -761,7 +762,7 @@
             gallery.innerHTML = '<div class="loading"><div class="spinner"></div><p>Carregando galeria...</p></div>';
 
             try {
-                const response = await fetch('/Cantina/api/imagens.php?action=list', {
+                const response = await fetch('api/imagens.php?action=list', {
                     cache: 'no-store'
                 });
                 
@@ -872,7 +873,7 @@
             document.getElementById('uploadBtn').textContent = 'Enviando...';
 
             try {
-                const response = await fetch('/Cantina/api/imagens.php?action=upload', {
+                const response = await fetch('api/imagens.php?action=upload', {
                     method: 'POST',
                     body: formData,
                     cache: 'no-store'
@@ -904,7 +905,7 @@
             if (!confirm('Deseja deletar esta imagem?')) return;
 
             try {
-                const response = await fetch('/Cantina/api/imagens.php?action=delete', {
+                const response = await fetch('api/imagens.php?action=delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: 'produto_id=' + produtoId,

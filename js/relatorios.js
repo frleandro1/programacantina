@@ -151,7 +151,7 @@
 
     let cupom = '';
     cupom += sep + '\n';
-    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('CANTINA IBFC', CUPOM_LARGURA) + '\n';
     cupom += centralizarLinha('RELATORIO DE PRODUCAO', CUPOM_LARGURA) + '\n';
     cupom += sep + '\n';
     cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
@@ -185,7 +185,7 @@
 
     let cupom = '';
     cupom += sep + '\n';
-    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('CANTINA IBFC', CUPOM_LARGURA) + '\n';
     cupom += centralizarLinha('RESUMO DE VENDAS', CUPOM_LARGURA) + '\n';
     cupom += sep + '\n';
     cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
@@ -224,7 +224,7 @@
 
     let cupom = '';
     cupom += sep + '\n';
-    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('CANTINA IBFC', CUPOM_LARGURA) + '\n';
     cupom += centralizarLinha('DETALHES DE VENDAS', CUPOM_LARGURA) + '\n';
     cupom += sep + '\n';
     cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
@@ -263,7 +263,7 @@
 
     let cupom = '';
     cupom += sep + '\n';
-    cupom += centralizarLinha('LEFRO CANTINA', CUPOM_LARGURA) + '\n';
+    cupom += centralizarLinha('CANTINA IBFC', CUPOM_LARGURA) + '\n';
     cupom += centralizarLinha('ABERTURA DE CAIXA', CUPOM_LARGURA) + '\n';
     cupom += sep + '\n';
     cupom += centralizarLinha(`Periodo: ${periodo}`, CUPOM_LARGURA) + '\n';
@@ -279,6 +279,9 @@
 
       cupom += limitarLinha(`${sessao} | ${status}`, CUPOM_LARGURA) + '\n';
       cupom += limitarLinha(`Usuario: ${usuario}`, CUPOM_LARGURA) + '\n';
+      if (item.evento_nome) {
+        cupom += limitarLinha(`Evento: ${item.evento_nome}`, CUPOM_LARGURA) + '\n';
+      }
       cupom += limitarLinha(`Abertura: ${item.abertura_caixa || '-'}`, CUPOM_LARGURA) + '\n';
       cupom += limitarLinha(`Fechamento: ${item.fechamento_caixa || '-'}`, CUPOM_LARGURA) + '\n';
       cupom += montarLinhaDupla(`Vendas: ${vendas}`, `R$ ${valor.toFixed(2)}`, CUPOM_LARGURA) + '\n';
@@ -511,6 +514,7 @@
         .map((r, index) => `<tr>
           <td>#${r.sessao_id}</td>
           <td>${r.nome || r.login || ''}</td>
+          <td><span style="display:inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; background: ${r.evento_nome ? '#e3f2fd' : '#eee'}; color: ${r.evento_nome ? '#1565c0' : '#777'}; font-weight: 600;">${r.evento_nome || 'Geral'}</span></td>
           <td>${r.abertura_caixa || ''}</td>
           <td>${r.fechamento_caixa || '-'}</td>
           <td>${r.status === 'aberto' ? 'Aberto' : 'Fechado'}</td>
@@ -542,31 +546,9 @@
   }
 
   async function imprimirResumoVendasTermica() {
-    const inicio = getVal('inicioVendas') || hojeISO();
-    const fim = getVal('fimVendas') || inicio;
-
-    if (!cacheResumoVendas.length) {
-      await loadResumoVendas();
-    }
-
-    const resumo = cacheResumoVendas || [];
-    if (!resumo.length) {
-      alert('Sem dados de vendas para imprimir no período selecionado.');
-      return;
-    }
-
-    try {
-      const producao = await carregarProducaoPorPeriodo(inicio, fim);
-      const cupom = montarCupomResumoVendasLinhas(resumo, producao, inicio, fim);
-      const resultado = await imprimirCupomTermico(cupom);
-      if (resultado.modo === 'fila') {
-        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
-      } else {
-        alert('Resumo de vendas enviado para impressora térmica com sucesso.');
-      }
-    } catch (err) {
-      alert('Falha ao imprimir resumo térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
-    }
+    if (!cacheResumoVendas.length) await loadResumoVendas();
+    if (!cacheResumoVendas.length) return alert('Sem dados de vendas para imprimir no período selecionado.');
+    window.print();
   }
 
   function exportarProducaoPDF() {
@@ -616,18 +598,7 @@
       return;
     }
 
-    const cupom = montarCupomProducaoLinhas(itens, inicio, fim);
-
-    try {
-      const resultado = await imprimirCupomTermico(cupom);
-      if (resultado.modo === 'fila') {
-        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
-      } else {
-        alert('Relatório enviado para impressora térmica com sucesso.');
-      }
-    } catch (err) {
-      alert('Falha ao imprimir relatório térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
-    }
+    window.print();
   }
 
   function exportarDetalhesPDF() {
@@ -663,18 +634,7 @@
       return;
     }
 
-    const cupom = montarCupomDetalhesLinhas(itens, inicio, fim);
-
-    try {
-      const resultado = await imprimirCupomTermico(cupom);
-      if (resultado.modo === 'fila') {
-        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
-      } else {
-        alert('Detalhes de vendas enviados para impressora térmica com sucesso.');
-      }
-    } catch (err) {
-      alert('Falha ao imprimir detalhes térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
-    }
+    window.print();
   }
 
   function exportarCaixaPDF() {
@@ -684,6 +644,7 @@
       const rows = cacheCaixa.map((r) => [
         `#${r.sessao_id || ''}`,
         r.nome || r.login || '',
+        r.evento_nome || 'Geral',
         r.abertura_caixa || '',
         r.fechamento_caixa || '-',
         r.status === 'aberto' ? 'Aberto' : 'Fechado',
@@ -692,7 +653,7 @@
       ]);
       doc.autoTable({
         startY: 30,
-        head: [['Sessão', 'Usuário', 'Abertura', 'Fechamento', 'Status', 'Vendas', 'Total']],
+        head: [['Sessão', 'Usuário', 'Evento', 'Abertura', 'Fechamento', 'Status', 'Vendas', 'Total']],
         body: rows,
         theme: 'grid',
         styles: { fontSize: 8 },
@@ -718,18 +679,7 @@
       return;
     }
 
-    const cupom = montarCupomCaixaLinhas(itens, inicio, fim);
-
-    try {
-      const resultado = await imprimirCupomTermico(cupom);
-      if (resultado.modo === 'fila') {
-        alert('Impressora ocupada/indisponível no momento. Relatório enviado para a fila de impressão.');
-      } else {
-        alert('Relatório de caixa enviado para impressora térmica com sucesso.');
-      }
-    } catch (err) {
-      alert('Falha ao imprimir caixa térmico: ' + (err && err.message ? err.message : 'erro desconhecido'));
-    }
+    window.print();
   }
 
   // FUNÇÕES DE CRUD PARA DETALHES DE VENDAS
@@ -737,11 +687,14 @@
     const venda = cacheDetalhes[index];
     if (!venda) return;
 
-    document.getElementById('editPedidoId').value = venda.pedido_id || venda.pedido || index;
+    const editPedidoEl = document.getElementById('editPedidoId');
+    editPedidoEl.value = venda.pedido_id || venda.pedido || index;
+    editPedidoEl.dataset.itemId = venda.item_id || '';
     document.getElementById('editPedidoNum').textContent = venda.pedido;
-    document.getElementById('editData').value = venda.data;
+    const dataIso = String(venda.data || '').trim().slice(0, 10);
+    document.getElementById('editData').value = dataIso;
     document.getElementById('editAtendente').value = venda.atendente || '';
-    document.getElementById('editProduto').value = venda.produto;
+    document.getElementById('editProduto').value = venda.produto || '';
     document.getElementById('editQuantidade').value = venda.quantidade;
     document.getElementById('editValor').value = Number(venda.subtotal || 0).toFixed(2);
 
@@ -756,11 +709,13 @@
   window.salvarEdicaoVenda = async function(event) {
     event.preventDefault();
 
-    const pedidoId = document.getElementById('editPedidoId').value;
+    const editPedidoEl = document.getElementById('editPedidoId');
+    const pedidoId = editPedidoEl.value;
+    const itemId = editPedidoEl.dataset.itemId ? parseInt(editPedidoEl.dataset.itemId, 10) : 0;
     const data = document.getElementById('editData').value;
     const atendente = document.getElementById('editAtendente').value;
     const produto = document.getElementById('editProduto').value;
-    const quantidade = parseInt(document.getElementById('editQuantidade').value);
+    const quantidade = parseInt(document.getElementById('editQuantidade').value, 10);
     const valor = parseFloat(document.getElementById('editValor').value);
 
     if (!data || !produto || quantidade <= 0 || valor < 0) {
@@ -774,6 +729,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pedido_id: pedidoId,
+          item_id: itemId,
           data,
           atendente,
           produto,
@@ -808,7 +764,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pedido_id: venda.pedido_id || venda.pedido || index
+          pedido_id: venda.pedido_id || venda.pedido || index,
+          item_id: venda.item_id || 0
         })
       });
 

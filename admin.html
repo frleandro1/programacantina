@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel do Administrador - Lefro Cantina</title>
+<title>Painel do Administrador - Cantina IBFC</title>
 <style>
 :root {
   --brand: #1e5ba8;
@@ -962,12 +962,13 @@ input[type=\"color\"] {
   }
 }
 </style>
+<link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
 <div class="topbar">
   <div class="brand">
     <img src="LOGO_F.png" alt="Logo Cantina" class="brand-logo">
-    <span>Lefro Cantina</span>
+    <span>Cantina IBFC</span>
   </div>
   <button class="hamburger" id="hamburguerBtn" aria-label="Menu" style="display:none;" onclick="toggleNav()">
     <span></span><span></span><span></span>
@@ -986,6 +987,9 @@ input[type=\"color\"] {
     <ul class="sidebar-menu">
       <li><button class="menu-btn active" data-section="usuarios">👤 Usuários</button></li>
       <li><button class="menu-btn" data-section="produtos">📦 Produtos</button></li>
+      <li><a href="controle-estoque.html">📊 Estoque, Queima &amp; Perdas</a></li>
+      <li><a href="relatorios-perdas.html">📉 Relatório Perdas &amp; Lucros</a></li>
+      <li><a href="financeiro.html">💰 Financeiro</a></li>
       <li><a href="admin-imagens.html">🖼️ Imagens</a></li>
     </ul>
     
@@ -1029,7 +1033,7 @@ input[type=\"color\"] {
           <div class="form-group">
             <label for="usuarioPapel">Tipo de Usuário</label>
             <select id="usuarioPapel">
-              <option value="vendedor">Vendedor</option>
+              <option value="vendedor">Ministério</option>
               <option value="admin">Administrador</option>
             </select>
           </div>
@@ -1093,13 +1097,32 @@ input[type=\"color\"] {
 
         <div class="form-row">
           <div class="form-group">
-            <label for="produtoPreco">Preço (R$) *</label>
+            <label for="produtoPreco">Preço de Venda (R$) *</label>
             <input type="number" id="produtoPreco" step="0.01" min="0" required placeholder="Ex: 5.99">
           </div>
           <div class="form-group">
-            <label for="produtoEstoque">Estoque Inicial *</label>
-            <input type="number" id="produtoEstoque" min="0" required placeholder="Ex: 50">
+            <label for="produtoCusto">Preço de Custo (R$)</label>
+            <input type="number" id="produtoCusto" step="0.01" min="0" value="0" placeholder="Ex: 2.50">
           </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="produtoEstoque">Estoque Inicial *</label>
+            <input type="number" id="produtoEstoque" step="0.01" min="0" required placeholder="Ex: 50">
+          </div>
+          <div class="form-group">
+            <label for="produtoEstoqueMinimo">Estoque Mínimo (Alerta)</label>
+            <input type="number" id="produtoEstoqueMinimo" step="0.01" min="0" value="5" placeholder="Ex: 5">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="produtoUnidade">Unidade de Medida</label>
+          <select id="produtoUnidade">
+            <option value="un">Unidade (un)</option>
+            <option value="kg">Quilo (kg)</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -1218,7 +1241,7 @@ input[type=\"color\"] {
           
           <div class="form-group">
             <label for="nomeCantina">Nome da Cantina</label>
-            <input type="text" id="nomeCantina" placeholder="Lefro Cantina" value="Lefro Cantina">
+            <input type="text" id="nomeCantina" placeholder="Cantina IBFC" value="Cantina IBFC">
           </div>
 
           <button type="button" class="btn btn-primary" onclick="salvarNomeCantina()">✓ Salvar Nome</button>
@@ -1309,8 +1332,9 @@ input[type=\"color\"] {
   </div>
 </div>
 
+<script src="js/sistema-core.js"></script>
 <script>
-const API_URL = window.location.origin + '/Cantina/api';
+const API_URL = 'api';
 const usuarioForm = document.getElementById('usuarioForm');
 const usuarioFormTitulo = document.getElementById('usuarioFormTitulo');
 const usuarioLoginInput = document.getElementById('usuarioLogin');
@@ -1333,15 +1357,11 @@ let produtoImagemPreparada = null;
 let produtoEditandoId = null;
 
 function normalizarTipoUsuario(tipo) {
-  const t = String(tipo || '').toLowerCase();
-  if (t === 'admin' || t === 'administrador' || t === 'gestor') {
-    return 'admin';
-  }
-  return 'vendedor';
+  return window.CantinaSistema ? window.CantinaSistema.normalizarTipoUsuario(tipo) : 'vendedor';
 }
 
 function rotuloTipoUsuario(tipo) {
-  return normalizarTipoUsuario(tipo) === 'admin' ? 'Administrador' : 'Vendedor';
+  return window.CantinaSistema ? window.CantinaSistema.rotuloTipoUsuario(tipo) : 'Ministério';
 }
 
 const PRODUTO_IMAGEM_LARGURA = 960;
@@ -1527,7 +1547,10 @@ document.getElementById('produtoForm').addEventListener('submit', async (e) => {
   const nome = document.getElementById('produtoNome').value.trim();
   const categoria = document.getElementById('produtoCategoria').value;
   const preco = parseFloat(document.getElementById('produtoPreco').value);
-  const estoque = parseInt(document.getElementById('produtoEstoque').value);
+  const preco_custo = parseFloat(document.getElementById('produtoCusto')?.value || '0') || 0;
+  const estoque = parseFloat(document.getElementById('produtoEstoque').value);
+  const estoque_minimo = parseFloat(document.getElementById('produtoEstoqueMinimo')?.value || '5');
+  const unidade = document.getElementById('produtoUnidade')?.value || 'un';
   const descricao = document.getElementById('produtoDescricao').value.trim();
   const imagemArquivo = produtoImagemPreparada;
   const emEdicao = Number.isFinite(Number(produtoEditandoId)) && Number(produtoEditandoId) > 0;
@@ -1542,7 +1565,10 @@ document.getElementById('produtoForm').addEventListener('submit', async (e) => {
       nome,
       categoria,
       preco,
+      preco_custo: Math.max(0, preco_custo),
       estoque,
+      estoque_minimo: Number.isFinite(estoque_minimo) ? Math.max(0, estoque_minimo) : 5,
+      unidade,
       descricao,
       status: 'ativo'
     };
@@ -1624,7 +1650,16 @@ function iniciarEdicaoProduto(id) {
   document.getElementById('produtoNome').value = produto.nome || '';
   document.getElementById('produtoCategoria').value = produto.categoria || 'Outro';
   document.getElementById('produtoPreco').value = Number(produto.preco || 0);
-  document.getElementById('produtoEstoque').value = Number(produto.estoque || 0);
+  if (document.getElementById('produtoCusto')) {
+    document.getElementById('produtoCusto').value = Number(produto.preco_custo || 0);
+  }
+  document.getElementById('produtoEstoque').value = Number(produto.estoque_atual ?? produto.estoque ?? 0);
+  if (document.getElementById('produtoEstoqueMinimo')) {
+    document.getElementById('produtoEstoqueMinimo').value = Number(produto.estoque_minimo ?? 5);
+  }
+  if (document.getElementById('produtoUnidade')) {
+    document.getElementById('produtoUnidade').value = produto.unidade || 'un';
+  }
   document.getElementById('produtoDescricao').value = produto.descricao || '';
 
   if (produto.imagem_url) {
@@ -1764,7 +1799,7 @@ async function enviarImagemProduto(produtoId, arquivo) {
   formData.append('produto_id', produtoId);
 
   try {
-    const response = await fetch('/Cantina/api/imagens.php?action=upload', {
+    const response = await fetch('api/imagens.php?action=upload', {
       method: 'POST',
       body: formData,
       cache: 'no-store'

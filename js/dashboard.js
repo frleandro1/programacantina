@@ -9,8 +9,8 @@ const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChann
 
 function obterContextoUsuario() {
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-  const rawType = String(localStorage.getItem('userType') || usuario.tipo || 'vendedor').toLowerCase();
-  const userType = (rawType === 'admin' || rawType === 'administrador' || rawType === 'gestor') ? 'admin' : 'vendedor';
+  const rawType = String(localStorage.getItem('userType') || usuario.tipo || 'vendedor');
+  const userType = window.CantinaSistema ? window.CantinaSistema.normalizarTipoUsuario(rawType) : 'vendedor';
   const userId = Number(usuario.id_usuario || usuario.id || 0) || 0;
   return { userType, userId };
 }
@@ -43,8 +43,6 @@ function alternarModoVendas() {
 
 async function carregarDados() {
   await carregarProdutos();
-  await carregarVendas();
-  await carregarEstatisticasHoje();
 }
 
 async function carregarProdutos() {
@@ -64,7 +62,6 @@ async function carregarProdutos() {
       }));
       produtosFiltrados = produtos;
       renderProdutos();
-      atualizarContadores();
     }
   } catch (err) {
     console.error('Erro ao carregar produtos:', err);
@@ -138,16 +135,12 @@ function iniciarAtualizacaoTempoReal() {
   atualizacaoIntervalo = setInterval(async () => {
     if (document.hidden) return;
     await carregarProdutos();
-    await carregarVendas();
-    await carregarEstatisticasHoje();
   }, 5000);
 }
 
 function registrarSincronizacaoEstoque() {
   const atualizarTudo = async () => {
     await carregarProdutos();
-    await carregarVendas();
-    await carregarEstatisticasHoje();
   };
 
   window.addEventListener('storage', async (event) => {
@@ -165,10 +158,6 @@ function registrarSincronizacaoEstoque() {
   window.addEventListener('focus', async () => {
     await atualizarTudo();
   });
-}
-
-function atualizarContadores() {
-  document.getElementById('totalProdutos').textContent = produtos.length;
 }
 
 function normalizarCategoria(valor) {
@@ -267,7 +256,7 @@ function montarCupomTexto(venda, idFallback) {
     'CUPOM DE VENDA',
     sep,
     `Venda: #${numero}`,
-    `Vendedor: ${vendedor}`,
+    `Ministério: ${vendedor}`,
     `Data: ${dataVenda}`,
     sep,
     'ITENS',
@@ -412,7 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   
-  atualizarUiModoVendas();
   carregarDados();
   iniciarAtualizacaoTempoReal();
   registrarSincronizacaoEstoque();

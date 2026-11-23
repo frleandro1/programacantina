@@ -1,0 +1,274 @@
+/*
+ * Ajustes compartilhados para telas pequenas. Este arquivo deve ser carregado
+ * depois dos estilos da página, depois das regras desktop.
+ */
+@media screen and (max-width: 768px) {
+  html {
+    min-width: 0;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body,
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+  }
+
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+
+  button,
+  .btn,
+  .btn-nav,
+  .btn-sair,
+  .pill-btn,
+  .tab-btn,
+  .menu-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  img,
+  canvas {
+    max-width: 100%;
+  }
+
+  .topbar {
+    width: 100%;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    box-sizing: border-box;
+  }
+
+  .topbar-inner,
+  .header,
+  .header-flex,
+  .section-header,
+  .filters,
+  .filtros,
+  .operador-info,
+  .header-buttons,
+  .acoes-header,
+  .modal-actions {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .container,
+  .main,
+  .main-content,
+  .content-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .content-wrapper {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .main,
+  .main-content {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .topbar + * {
+    min-width: 0;
+  }
+
+  .card,
+  .panel,
+  .section,
+  .tabela-container {
+    max-width: 100%;
+  }
+
+  .table-responsive,
+  .table-container,
+  .tabela-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    max-width: none;
+  }
+
+  .login-card,
+  .caixa-card,
+  .card,
+  .modal,
+  .modal-content,
+  .modal-box,
+  .cart-modal-content {
+    max-width: calc(100vw - 24px);
+  }
+
+  .modal,
+  .modal-overlay,
+  .cart-modal {
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .modal-content,
+  .modal-box,
+  .cart-modal-content {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+
+  #btnVoltarGlobal {
+    top: max(10px, env(safe-area-inset-top)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    min-height: 44px;
+  }
+}
+
+@media screen and (max-width: 560px) {
+  .container {
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
+  }
+
+  .topbar-inner,
+  .unidade-badge,
+  .operador-info,
+  .brand,
+  .header-stats {
+    width: 100%;
+  }
+
+  .unidade-badge,
+  .operador-info {
+    justify-content: flex-start;
+  }
+
+  .unidade-badge strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .operador-info > .btn-nav,
+  .operador-info > .btn-sair,
+  .header-buttons > .btn,
+  .modal-actions > .btn {
+    flex: 1 1 140px;
+  }
+
+  .kpis,
+  .cards-resumo {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .kpi-card strong,
+  .card .valor {
+    overflow-wrap: anywhere;
+  }
+
+  .grid-principal,
+  .grid-2,
+  .form-row,
+  .filtro-bar,
+  .filtros,
+  .filters {
+    grid-template-columns: 1fr !important;
+  }
+
+  .btn-group,
+  .botoes,
+  .acoes {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .btn-group .btn,
+  .botoes .btn {
+    flex: 1 1 140px;
+  }
+
+  th,
+  td {
+    padding: 10px 8px;
+  }
+
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media screen and (max-width: 390px) {
+  .kpis,
+  .cards-resumo {
+    grid-template-columns: 1fr !important;
+  }
+
+  .brand span,
+  .unidade-badge strong {
+    font-size: 14px !important;
+  }
+
+  .card,
+  .panel,
+  .section {
+    padding: 14px;
+  }
+
+  .botoes,
+  .header-buttons,
+  .btn-group {
+    flex-direction: column;
+  }
+
+  .botoes .btn,
+  .header-buttons .btn,
+  .btn-group .btn {
+    width: 100%;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media screen and (max-width: 768px) {
+    body {
+      background-attachment: scroll !important;
+    }
+
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+@media print {
+  body {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}

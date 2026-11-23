@@ -2,19 +2,28 @@
 require_once __DIR__ . '/headers.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../db/config.php';
+require_once __DIR__ . '/estoque-contabil.php';
+
+garantir_schema_estoque_contabil($conn);
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
 function ensure_vendas_schema($conn) {
+    $cols = ec_colunas_tabela($conn, 'vendas');
     $colSessao = $conn->query("SHOW COLUMNS FROM vendas LIKE 'sessao_caixa_id'");
     if (!$colSessao || $colSessao->num_rows === 0) {
-        $conn->query("ALTER TABLE vendas ADD COLUMN sessao_caixa_id INT NULL AFTER id_usuario");
+        $ancoraUsuario = isset($cols['id_usuario']) ? 'id_usuario' : 'usuario_id';
+        $conn->query("ALTER TABLE vendas ADD COLUMN sessao_caixa_id INT NULL AFTER {$ancoraUsuario}");
     }
 
+    $colDia = $conn->query("SHOW COLUMNS FROM vendas LIKE 'numero_venda_dia'");
+    if (!$colDia || $colDia->num_rows === 0) {
+        $conn->query("ALTER TABLE vendas ADD COLUMN numero_venda_dia INT NULL");
+    }
     $colTurno = $conn->query("SHOW COLUMNS FROM vendas LIKE 'numero_venda_turno'");
     if (!$colTurno || $colTurno->num_rows === 0) {
-        $conn->query("ALTER TABLE vendas ADD COLUMN numero_venda_turno INT NULL AFTER numero_venda_dia");
+        $conn->query("ALTER TABLE vendas ADD COLUMN numero_venda_turno INT NULL");
     }
 
     $conn->query("CREATE TABLE IF NOT EXISTS caixa_sessoes (
@@ -23,6 +32,10 @@ function ensure_vendas_schema($conn) {
         login_usuario VARCHAR(100) NOT NULL,
         abertura_caixa DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         fechamento_caixa DATETIME NULL,
+        valor_abertura DECIMAL(10, 2) DEFAULT 0,
+        valor_fechamento DECIMAL(10, 2) DEFAULT 0,
+        total_vendas DECIMAL(10, 2) DEFAULT 0,
+        observacoes TEXT NULL,
         status ENUM('aberto','fechado') NOT NULL DEFAULT 'aberto',
         ip_origem VARCHAR(45) NULL,
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -30,6 +43,26 @@ function ensure_vendas_schema($conn) {
         INDEX idx_usuario_status (id_usuario, status),
         INDEX idx_abertura (abertura_caixa)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function coluna_vendas($conn, $preferidas) {
+    $colunas = ec_colunas_tabela($conn, 'vendas');
+    foreach ($preferidas as $coluna) {
+        if (isset($colunas[$coluna])) {
+            return $coluna;
+        }
+    }
+    return null;
+}
+
+function coluna_tabela_vendas($conn, $tabela, $preferidas) {
+    $colunas = ec_colunas_tabela($conn, $tabela);
+    foreach ($preferidas as $coluna) {
+        if (isset($colunas[$coluna])) {
+            return $coluna;
+        }
+    }
+    return null;
 }
 
 function obterNumeroVendaTurno($conn, $sessaoCaixaId) {
@@ -53,7 +86,8 @@ ensure_vendas_schema($conn);
 
 // Função para obter número de venda do dia
 function obterNumeroVendaDia($conn) {
-    $sql = "SELECT COALESCE(MAX(numero_venda_dia), 0) + 1 as proximo FROM vendas WHERE DATE(data_hora) = CURDATE()";
+    $dataColuna = coluna_vendas($conn, ['data_hora', 'data_venda']);
+    $sql = "SELECT COALESCE(MAX(numero_venda_dia), 0) + 1 as proximo FROM vendas WHERE DATE({$dataColuna}) = CURDATE()";
     $result = $conn->query($sql);
     if ($result) {
         $row = $result->fetch_assoc();
@@ -63,6 +97,12 @@ function obterNumeroVendaDia($conn) {
 }
 
 if ($method === 'GET' && $action === 'listar') {
+    $vendaId = coluna_vendas($conn, ['id_venda', 'id']);
+    $usuarioId = coluna_vendas($conn, ['id_usuario', 'usuario_id']);
+    $dataVenda = coluna_vendas($conn, ['data_hora', 'data_venda']);
+    $usuarioTabelaId = coluna_tabela_vendas($conn, 'usuarios', ['id_usuario', 'id']);
+    $produtoId = coluna_tabela_vendas($conn, 'produtos', ['id_produto', 'id']);
+    $usuarioLogin = coluna_tabela_vendas($conn, 'usuarios', ['login', 'username']);
     $somenteHoje = !isset($_GET['somente_hoje']) || $_GET['somente_hoje'] !== '0';
     $usuarioFiltro = (int)($_GET['usuario_id'] ?? 0);
     $agruparVenda = isset($_GET['agrupar_venda']) && $_GET['agrupar_venda'] === '1';
@@ -72,11 +112,11 @@ if ($method === 'GET' && $action === 'listar') {
     $types = '';
 
     if ($somenteHoje) {
-        $where[] = 'DATE(v.data_hora) = CURDATE()';
+        $where[] = "DATE(v.{$dataVenda}) = CURDATE()";
     }
 
     if ($usuarioFiltro > 0) {
-        $where[] = 'v.id_usuario = ?';
+        $where[] = "v.{$usuarioId} = ?";
         $params[] = $usuarioFiltro;
         $types .= 'i';
     }
@@ -84,26 +124,26 @@ if ($method === 'GET' && $action === 'listar') {
     $whereSql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
     if ($agruparVenda) {
-        $sql = "SELECT v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia,
-                       COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor,
+        $sql = "SELECT v.{$vendaId} AS id_venda, v.{$dataVenda} AS data_hora, v.numero_venda_turno, v.numero_venda_dia,
+                       COALESCE(NULLIF(u.nome, ''), NULLIF(u.{$usuarioLogin}, ''), 'N/A') as vendedor,
                        COALESCE(v.valor_total, SUM(iv.subtotal), 0) as valor_total
                 FROM vendas v
-                LEFT JOIN itens_venda iv ON iv.id_venda = v.id_venda
-                LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
+                LEFT JOIN itens_venda iv ON iv.id_venda = v.{$vendaId}
+                LEFT JOIN usuarios u ON u.{$usuarioTabelaId} = v.{$usuarioId}
                 $whereSql
-                GROUP BY v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia, vendedor, v.valor_total
-                ORDER BY v.data_hora DESC
+                GROUP BY v.{$vendaId}, v.{$dataVenda}, v.numero_venda_turno, v.numero_venda_dia, vendedor, v.valor_total
+                ORDER BY v.{$dataVenda} DESC
                 LIMIT 300";
     } else {
-        $sql = "SELECT iv.id_venda, iv.id_produto, p.nome as produto, iv.quantidade, iv.preco_unitario, iv.subtotal, v.data_hora,
+        $sql = "SELECT iv.id_venda, iv.id_produto, p.nome as produto, iv.quantidade, iv.preco_unitario, iv.subtotal, v.{$dataVenda} AS data_hora,
                        v.numero_venda_turno, v.numero_venda_dia,
-                       COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor
+                       COALESCE(NULLIF(u.nome, ''), NULLIF(u.{$usuarioLogin}, ''), 'N/A') as vendedor
                 FROM itens_venda iv
-                JOIN produtos p ON iv.id_produto = p.id_produto
-                JOIN vendas v ON iv.id_venda = v.id_venda
-                LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
+                JOIN produtos p ON iv.id_produto = p.{$produtoId}
+                JOIN vendas v ON iv.id_venda = v.{$vendaId}
+                LEFT JOIN usuarios u ON u.{$usuarioTabelaId} = v.{$usuarioId}
                 $whereSql
-                ORDER BY v.data_hora DESC
+                ORDER BY v.{$dataVenda} DESC
                 LIMIT 300";
     }
 
@@ -139,21 +179,26 @@ if ($method === 'GET' && $action === 'listar') {
 }
 
 if ($method === 'GET' && $action === 'listar_por_sessao') {
+    $vendaId = coluna_vendas($conn, ['id_venda', 'id']);
+    $usuarioId = coluna_vendas($conn, ['id_usuario', 'usuario_id']);
+    $dataVenda = coluna_vendas($conn, ['data_hora', 'data_venda']);
+    $usuarioTabelaId = coluna_tabela_vendas($conn, 'usuarios', ['id_usuario', 'id']);
+    $usuarioLogin = coluna_tabela_vendas($conn, 'usuarios', ['login', 'username']);
     $sessaoId = (int)($_GET['sessao_id'] ?? 0);
     
     if ($sessaoId <= 0) {
         json_error('ID da sessão inválido');
     }
     
-    $sql = "SELECT v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia,
-                   COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor,
+    $sql = "SELECT v.{$vendaId} AS id_venda, v.{$dataVenda} AS data_hora, v.numero_venda_turno, v.numero_venda_dia,
+                   COALESCE(NULLIF(u.nome, ''), NULLIF(u.{$usuarioLogin}, ''), 'N/A') as vendedor,
                    COALESCE(v.valor_total, SUM(iv.subtotal), 0) as valor_total
             FROM vendas v
-            LEFT JOIN itens_venda iv ON iv.id_venda = v.id_venda
-            LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
+            LEFT JOIN itens_venda iv ON iv.id_venda = v.{$vendaId}
+            LEFT JOIN usuarios u ON u.{$usuarioTabelaId} = v.{$usuarioId}
             WHERE v.sessao_caixa_id = ?
-            GROUP BY v.id_venda, v.data_hora, v.numero_venda_turno, v.numero_venda_dia, vendedor, v.valor_total
-            ORDER BY v.data_hora DESC";
+            GROUP BY v.{$vendaId}, v.{$dataVenda}, v.numero_venda_turno, v.numero_venda_dia, vendedor, v.valor_total
+            ORDER BY v.{$dataVenda} DESC";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param('i', $sessaoId);
@@ -178,16 +223,22 @@ if ($method === 'GET' && $action === 'listar_por_sessao') {
 }
 
 if ($method === 'GET' && $action === 'detalhes') {
+    $vendaId = coluna_vendas($conn, ['id_venda', 'id']);
+    $usuarioId = coluna_vendas($conn, ['id_usuario', 'usuario_id']);
+    $dataVenda = coluna_vendas($conn, ['data_hora', 'data_venda']);
+    $usuarioTabelaId = coluna_tabela_vendas($conn, 'usuarios', ['id_usuario', 'id']);
+    $usuarioLogin = coluna_tabela_vendas($conn, 'usuarios', ['login', 'username']);
+    $produtoId = coluna_tabela_vendas($conn, 'produtos', ['id_produto', 'id']);
     $idVenda = (int)($_GET['id'] ?? 0);
     if ($idVenda <= 0) {
         json_error('ID da venda inválido');
     }
 
-    $sqlCab = "SELECT v.id_venda, v.data_hora, v.valor_total, v.numero_venda_turno, v.numero_venda_dia,
-                      COALESCE(NULLIF(u.nome, ''), NULLIF(u.login, ''), u.username, 'N/A') as vendedor
+    $sqlCab = "SELECT v.{$vendaId} AS id_venda, v.{$dataVenda} AS data_hora, v.valor_total, v.numero_venda_turno, v.numero_venda_dia,
+                      COALESCE(NULLIF(u.nome, ''), NULLIF(u.{$usuarioLogin}, ''), 'N/A') as vendedor
                FROM vendas v
-               LEFT JOIN usuarios u ON u.id_usuario = v.id_usuario
-               WHERE v.id_venda = ?
+               LEFT JOIN usuarios u ON u.{$usuarioTabelaId} = v.{$usuarioId}
+               WHERE v.{$vendaId} = ?
                LIMIT 1";
     $stmtCab = $conn->prepare($sqlCab);
     if (!$stmtCab) {
@@ -204,7 +255,7 @@ if ($method === 'GET' && $action === 'detalhes') {
 
     $sqlItens = "SELECT i.id_produto, p.nome as produto, i.quantidade, i.preco_unitario, i.subtotal
                  FROM itens_venda i
-                 LEFT JOIN produtos p ON p.id_produto = i.id_produto
+                 LEFT JOIN produtos p ON p.{$produtoId} = i.id_produto
                  WHERE i.id_venda = ?
                  ORDER BY i.id_item ASC";
     $stmtItens = $conn->prepare($sqlItens);
@@ -244,10 +295,14 @@ if ($method === 'GET' && $action === 'detalhes') {
 }
 
 if ($method === 'POST' && $action === 'criar_carrinho') {
+    if (session_status() === PHP_SESSION_NONE) @session_start();
     $data = json_decode(file_get_contents('php://input'), true) ?? [];
     $itens = $data['itens'] ?? [];
-    $usuario_id = (int)($data['usuario_id'] ?? 1);
+    $usuario_id = (int)($data['usuario_id'] ?? ($_SESSION['usuario_id'] ?? 1));
     $sessao_caixa_id = (int)($data['sessao_caixa_id'] ?? 0);
+    if ($sessao_caixa_id <= 0 && !empty($_SESSION['caixa_sessao_id'])) {
+        $sessao_caixa_id = (int)$_SESSION['caixa_sessao_id'];
+    }
     if (!is_array($itens) || count($itens)===0) json_error('Carrinho vazio');
 
     // Carregar produtos envolvidos
@@ -255,11 +310,12 @@ if ($method === 'POST' && $action === 'criar_carrinho') {
     $ids = array_values(array_unique(array_filter($ids)));
     if (count($ids)===0) json_error('Itens inválidos');
 
-    $in = implode(',', array_fill(0, count($ids), '?'));
-    $types = str_repeat('i', count($ids));
-    $stmt = $conn->prepare('SELECT id_produto, nome, preco_venda, estoque_atual FROM produtos WHERE id_produto IN ('.str_replace('?', '?', $in).')');
-    // MySQLi não suporta bind dinâmico diretamente no implode; contorno simples abaixo:
-    $sql = 'SELECT id_produto, nome, preco_venda, estoque_atual FROM produtos WHERE id_produto IN ('.implode(',', $ids).')';
+    $produtoId = coluna_tabela_vendas($conn, 'produtos', ['id_produto', 'id']);
+    $precoProduto = coluna_tabela_vendas($conn, 'produtos', ['preco_venda', 'preco']);
+    $estoqueProduto = coluna_tabela_vendas($conn, 'produtos', ['estoque_atual', 'estoque']);
+    $atualizadoProduto = coluna_tabela_vendas($conn, 'produtos', ['data_atualizacao', 'atualizado_em']);
+    $usuarioVenda = coluna_vendas($conn, ['id_usuario', 'usuario_id']);
+    $sql = "SELECT {$produtoId} AS id_produto, nome, {$precoProduto} AS preco_venda, COALESCE(preco_custo, 0) AS preco_custo, {$estoqueProduto} AS estoque_atual FROM produtos WHERE {$produtoId} IN (".implode(',', $ids).')';
     $res = $conn->query($sql);
     if (!$res) json_error('Erro ao carregar produtos: '.$conn->error);
     $map = [];
@@ -269,11 +325,11 @@ if ($method === 'POST' && $action === 'criar_carrinho') {
     $subtotalTotal = 0.0;
     foreach ($itens as $it){
         $pid = (int)($it['produto_id'] ?? 0);
-        $qtd = (int)($it['quantidade'] ?? 0);
+        $qtd = (float)($it['quantidade'] ?? 0);
         if ($pid<=0 || $qtd<=0) json_error('Item inválido');
         if (!isset($map[$pid])) json_error('Produto '.$pid.' não encontrado');
         $preco = (float)$map[$pid]['preco_venda'];
-        $estoque = (int)$map[$pid]['estoque_atual'];
+        $estoque = (float)$map[$pid]['estoque_atual'];
         if ($estoque < $qtd) json_error('Estoque insuficiente para produto ID '.$pid);
         $subtotalTotal += $preco * $qtd;
     }
@@ -285,31 +341,49 @@ if ($method === 'POST' && $action === 'criar_carrinho') {
         $numero_venda_turno = obterNumeroVendaTurno($conn, $sessao_caixa_id);
         
         // Inserir venda principal
-        $stmtV = $conn->prepare('INSERT INTO vendas (id_usuario, sessao_caixa_id, valor_total, numero_venda_dia, numero_venda_turno, data_hora) VALUES (?,?,?,?,?,NOW())');
+        $stmtV = $conn->prepare("INSERT INTO vendas ({$usuarioVenda}, sessao_caixa_id, valor_total, numero_venda_dia, numero_venda_turno) VALUES (?,?,?,?,?)");
         if (!$stmtV) throw new Exception('Erro preparação venda: '.$conn->error);
         $stmtV->bind_param('iidii', $usuario_id, $sessao_caixa_id, $subtotalTotal, $numero_venda_dia, $numero_venda_turno);
         if (!$stmtV->execute()) throw new Exception('Erro ao criar venda: '.$stmtV->error);
         $id_venda = $stmtV->insert_id;
 
-        // Inserir cada item e atualizar estoque
+        // Inserir cada item, atualizar estoque e contabilizar lucro automaticamente
         $stmtI = $conn->prepare('INSERT INTO itens_venda (id_venda, id_produto, quantidade, preco_unitario, subtotal) VALUES (?,?,?,?,?)');
         if (!$stmtI) throw new Exception('Erro preparação item: '.$conn->error);
 
-        $stmtP = $conn->prepare('UPDATE produtos SET estoque_atual = GREATEST(estoque_atual - ?, 0), data_atualizacao = CURRENT_TIMESTAMP WHERE id_produto = ? AND estoque_atual >= ?');
+        $stmtP = $conn->prepare("UPDATE produtos SET {$estoqueProduto} = GREATEST({$estoqueProduto} - ?, 0), {$atualizadoProduto} = CURRENT_TIMESTAMP WHERE {$produtoId} = ? AND {$estoqueProduto} >= ?");
         if (!$stmtP) throw new Exception('Erro preparação estoque: '.$conn->error);
 
+        $lucroTotal = 0.0;
         foreach ($itens as $it){
             $pid = (int)$it['produto_id'];
-            $qtd = (int)$it['quantidade'];
+            $qtd = (float)$it['quantidade'];
+            $qtdInt = (int)round($qtd);
             $preco = (float)$map[$pid]['preco_venda'];
+            $custo = (float)($map[$pid]['preco_custo'] ?? 0);
             $sub = $preco * $qtd;
-            if (!$stmtI->bind_param('iiidd', $id_venda, $pid, $qtd, $preco, $sub) || !$stmtI->execute())
+            if (!$stmtI->bind_param('iiidd', $id_venda, $pid, $qtdInt, $preco, $sub) || !$stmtI->execute())
                 throw new Exception('Erro ao inserir item: '.$stmtI->error);
-            if (!$stmtP->bind_param('iii', $qtd, $pid, $qtd) || !$stmtP->execute())
+            $itemVendaId = (int)$stmtI->insert_id;
+
+            if (!$stmtP->bind_param('did', $qtd, $pid, $qtd) || !$stmtP->execute())
                 throw new Exception('Erro ao atualizar estoque: '.$stmtP->error);
             if ($stmtP->affected_rows === 0) {
                 throw new Exception('Estoque insuficiente para produto ID '.$pid.' no momento da confirmação');
             }
+
+            $lucroTotal += registrar_venda_contabil(
+                $conn,
+                $id_venda,
+                $itemVendaId,
+                $pid,
+                $qtd,
+                $preco,
+                $custo,
+                $usuario_id,
+                $sessao_caixa_id > 0 ? $sessao_caixa_id : null,
+                $numero_venda_dia
+            );
         }
 
         $conn->commit();
@@ -319,7 +393,8 @@ if ($method === 'POST' && $action === 'criar_carrinho') {
             'id'=>$id_venda,
             'numero_venda'=>$numero_venda_dia,
             'numero_venda_turno'=>$numero_venda_turno,
-            'sessao_caixa_id'=>$sessao_caixa_id
+            'sessao_caixa_id'=>$sessao_caixa_id,
+            'lucro_estimado'=>round($lucroTotal, 2)
         ]);
     } catch (Exception $e){
         $conn->rollback();
@@ -337,12 +412,17 @@ if ($method === 'POST' && $action === 'criar') {
     $sessao_caixa_id = (int)($data['sessao_caixa_id'] ?? 0);
     if ($produto_id<=0 || $quantidade<=0) json_error('Dados inválidos');
 
-    $p = $conn->prepare('SELECT preco_venda, estoque_atual FROM produtos WHERE id_produto = ?');
+    $produtoId = coluna_tabela_vendas($conn, 'produtos', ['id_produto', 'id']);
+    $precoProduto = coluna_tabela_vendas($conn, 'produtos', ['preco_venda', 'preco']);
+    $estoqueProduto = coluna_tabela_vendas($conn, 'produtos', ['estoque_atual', 'estoque']);
+    $atualizadoProduto = coluna_tabela_vendas($conn, 'produtos', ['data_atualizacao', 'atualizado_em']);
+    $usuarioVenda = coluna_vendas($conn, ['id_usuario', 'usuario_id']);
+    $p = $conn->prepare("SELECT {$precoProduto} AS preco_venda, COALESCE(preco_custo, 0) AS preco_custo, {$estoqueProduto} AS estoque_atual FROM produtos WHERE {$produtoId} = ?");
     if (!$p) json_error('Erro preparação produto: '.$conn->error);
     $p->bind_param('i', $produto_id); $p->execute();
     $prod = $p->get_result()->fetch_assoc();
     if (!$prod) json_error('Produto não encontrado');
-    $preco = (float)$prod['preco_venda']; $estoque = (int)$prod['estoque_atual'];
+    $preco = (float)$prod['preco_venda']; $custo = (float)$prod['preco_custo']; $estoque = (float)$prod['estoque_atual'];
     if ($estoque < $quantidade) json_error('Estoque insuficiente');
 
     $total = $preco*$quantidade;
@@ -352,20 +432,34 @@ if ($method === 'POST' && $action === 'criar') {
         $numero_venda_dia = obterNumeroVendaDia($conn);
         $numero_venda_turno = obterNumeroVendaTurno($conn, $sessao_caixa_id);
         
-        $v = $conn->prepare('INSERT INTO vendas (id_usuario, sessao_caixa_id, valor_total, numero_venda_dia, numero_venda_turno, data_hora) VALUES (?,?,?,?,?,NOW())');
+        $v = $conn->prepare("INSERT INTO vendas ({$usuarioVenda}, sessao_caixa_id, valor_total, numero_venda_dia, numero_venda_turno) VALUES (?,?,?,?,?)");
         $v->bind_param('iidii', $usuario_id, $sessao_caixa_id, $total, $numero_venda_dia, $numero_venda_turno); $v->execute(); $id_venda = $v->insert_id;
         $i = $conn->prepare('INSERT INTO itens_venda (id_venda, id_produto, quantidade, preco_unitario, subtotal) VALUES (?,?,?,?,?)');
         $i->bind_param('iiidd', $id_venda, $produto_id, $quantidade, $preco, $total); $i->execute();
-        $u = $conn->prepare('UPDATE produtos SET estoque_atual = GREATEST(estoque_atual - ?, 0), data_atualizacao = CURRENT_TIMESTAMP WHERE id_produto = ? AND estoque_atual >= ?');
-        $u->bind_param('iii', $quantidade, $produto_id, $quantidade); $u->execute();
+        $itemVendaId = (int)$i->insert_id;
+        $u = $conn->prepare("UPDATE produtos SET {$estoqueProduto} = GREATEST({$estoqueProduto} - ?, 0), {$atualizadoProduto} = CURRENT_TIMESTAMP WHERE {$produtoId} = ? AND {$estoqueProduto} >= ?");
+        $u->bind_param('did', $quantidade, $produto_id, $quantidade); $u->execute();
         if ($u->affected_rows === 0) throw new Exception('Estoque insuficiente para produto ID '.$produto_id.' no momento da confirmação');
+        $lucro = registrar_venda_contabil(
+            $conn,
+            $id_venda,
+            $itemVendaId,
+            $produto_id,
+            $quantidade,
+            $preco,
+            $custo,
+            $usuario_id,
+            $sessao_caixa_id > 0 ? $sessao_caixa_id : null,
+            $numero_venda_dia
+        );
         $conn->commit(); echo json_encode([
             'sucesso'=>true,
             'mensagem'=>'Venda criada com sucesso',
             'id'=>$id_venda,
             'numero_venda'=>$numero_venda_dia,
             'numero_venda_turno'=>$numero_venda_turno,
-            'sessao_caixa_id'=>$sessao_caixa_id
+            'sessao_caixa_id'=>$sessao_caixa_id,
+            'lucro_estimado'=>round($lucro, 2)
         ]);
     }catch(Exception $e){ $conn->rollback(); json_error($e->getMessage()); }
     exit;

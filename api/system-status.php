@@ -14,6 +14,6 @@ echo json_encode([
     'sucesso' => $ok,
     'mensagem' => $mensagem,
     'timestamp' => date('c'),
-    'app' => 'Programa Cantina',
+    'app' => 'Cantina IBFC',
     'url_login' => '/Cantina/login-menu.html'
 ], JSON_UNESCAPED_UNICODE);

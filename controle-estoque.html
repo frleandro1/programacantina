@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Estoque, Queima & Perdas - Cantina IBFC</title>
+    <link rel="stylesheet" href="css/controle-estoque.css">
+    <link rel="stylesheet" href="css/relatorios-a4.css">
+    <link rel="stylesheet" href="css/responsivo-mobile.css">
+    <script src="js/relatorios-a4.js" defer></script>
+</head>
+<body>
+
+<nav class="topbar">
+    <div class="topbar-inner">
+        <div class="unidade-badge">
+            <img src="LOGO_F.png" alt="Cantina IBFC" class="brand-logo">
+            <span class="dot"></span>
+            <strong id="topbar_cantina">Cantina IBFC — Estoque &amp; Lucros</strong>
+        </div>
+        <div class="operador-info">
+            <a href="vendas.html" class="btn-nav">🛒 PDV Vendas</a>
+            <a href="relatorios-perdas.html" id="link_relatorios_perdas" class="btn-nav hidden">📉 Relatório Perdas &amp; Lucros</a>
+            <a href="financeiro.html" id="link_financeiro" class="btn-nav hidden">💰 Financeiro</a>
+            <a href="admin.html" id="link_admin" class="btn-nav hidden">⚙️ Admin</a>
+            <span>Operador: <strong id="topbar_operador">...</strong></span>
+            <button type="button" id="btnSair" class="btn-sair">Sair</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <header class="header-flex">
+        <div>
+            <h1>Controle de Estoque, Queima, Reaproveitamento &amp; Perdas</h1>
+            <p>Vendas do PDV e perdas já contabilizam lucros e prejuízos automaticamente em tempo real</p>
+        </div>
+        <div class="periodo-pills no-print">
+            <button type="button" class="pill-btn active" data-periodo="sessao">Sessão Atual (Este Login)</button>
+            <button type="button" class="pill-btn" data-periodo="hoje">Hoje</button>
+            <button type="button" class="pill-btn" data-periodo="7dias">7 dias</button>
+            <button type="button" class="pill-btn" data-periodo="30dias">30 dias</button>
+            <button type="button" class="pill-btn" data-periodo="tudo">Todo o período</button>
+            <button type="button" class="pill-btn" id="btnSincronizar" title="Sincronizar vendas e perdas antigas">🔄 Sincronizar</button>
+        </div>
+    </header>
+
+    <div id="alerta_geral" class="alerta hidden"></div>
+    <div id="alerta_sem_custo" class="alerta info hidden"></div>
+
+    <section class="kpis">
+        <div class="kpi-card">
+            <span>Capital em Estoque</span>
+            <strong id="kpi_capital">R$ 0,00</strong>
+            <small>Valor de custo parado</small>
+        </div>
+        <div class="kpi-card positivo">
+            <span>Lucro (Vendas + Queima)</span>
+            <strong id="kpi_lucro">R$ 0,00</strong>
+            <small id="kpi_receita_sub">Receita bruta: R$ 0,00</small>
+        </div>
+        <div class="kpi-card alerta-card">
+            <span>Quebra de Transformação</span>
+            <strong id="kpi_quebra">R$ 0,00</strong>
+            <small>Perda em reaproveitamentos</small>
+        </div>
+        <div class="kpi-card negativo">
+            <span>Perda Não Reaproveitável</span>
+            <strong id="kpi_perda">R$ 0,00</strong>
+            <small id="kpi_indice_sub">Índice de perda: 0,0%</small>
+        </div>
+        <div class="kpi-card destaque">
+            <span>Resultado Líquido Real</span>
+            <strong id="kpi_resultado_real">R$ 0,00</strong>
+            <small>Lucro − Perdas − Quebras</small>
+        </div>
+    </section>
+
+    <div id="banner_estoque_baixo" class="alerta-estoque hidden"></div>
+
+    <div class="grid-principal">
+        <div class="card">
+            <h2>1. Registrar Movimentação / Baixa</h2>
+            <form id="formMovimentacao">
+                <div class="form-group">
+                    <label for="produto_id">Produto:</label>
+                    <input type="search" id="busca_produto" placeholder="Pesquisar produto no estoque..." autocomplete="off">
+                    <select id="produto_id" required>
+                        <option value="">Carregando produtos...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo_operacao">Tipo de Operação:</label>
+                    <select id="tipo_operacao" required>
+                        <option value="QUEIMA">Queima de Estoque (Desconto / Saldão)</option>
+                        <option value="REAPROVEITAMENTO">Reaproveitamento (Transformar em Subproduto)</option>
+                        <option value="PERDA">Perda Não Reaproveitável (Descarte / Vencido)</option>
+                        <option value="ENTRADA">Entrada / Nova Produção (+ Estoque)</option>
+                        <option value="VENDA">Venda Direta (Preço Cheio)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantidade">Quantidade:</label>
+                    <input type="number" step="0.01" min="0.01" id="quantidade" required placeholder="Ex: 5">
+                </div>
+
+                <div id="box_queima" class="box-dinamico hidden">
+                    <div class="form-group">
+                        <label for="preco_queima">Preço Promocional de Queima (R$):</label>
+                        <input type="number" step="0.01" min="0.01" id="preco_queima">
+                        <small id="sugestao_queima" style="display:block; margin-top:5px; color:#64748b;"></small>
+                    </div>
+                </div>
+
+                <div id="box_reaproveitamento" class="box-dinamico hidden">
+                    <div class="form-group">
+                        <label for="produto_destino_id">Converter para qual subproduto?</label>
+                        <select id="produto_destino_id"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="qtd_gerada">Quantidade Gerada do Subproduto:</label>
+                        <input type="number" step="0.01" min="0.01" id="qtd_gerada" placeholder="Ex: 3.50">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="observacao">Justificativa / Motivo:</label>
+                    <input type="text" id="observacao" placeholder="Ex: Sobra do culto, embalagem avariada, promoção fim do dia...">
+                </div>
+
+                <div id="preview_financeiro" class="preview-box">
+                    Selecione um produto e quantidade para simular o impacto financeiro em tempo real.
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btnConfirmarMov">Confirmar Lançamento</button>
+            </form>
+        </div>
+
+        <div class="coluna-direita">
+            <div class="card">
+                <h2>2. Cadastro Rápido de Produto</h2>
+                <form id="formNovoProduto" class="form-inline-7">
+                    <input type="text" id="np_nome" placeholder="Nome do produto" required>
+                    <select id="np_categoria">
+                        <option value="Salgado">Salgado</option>
+                        <option value="Doce">Doce</option>
+                        <option value="Bebida">Bebida</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                    <select id="np_unidade">
+                        <option value="un">un</option>
+                        <option value="kg">kg</option>
+                    </select>
+                    <input type="number" step="0.01" min="0" id="np_custo" placeholder="Custo (R$)" required>
+                    <input type="number" step="0.01" min="0.01" id="np_venda" placeholder="Venda (R$)" required>
+                    <input type="number" step="0.01" min="0" id="np_estoque" placeholder="Saldo Ini." required>
+                    <input type="number" step="0.01" min="0" id="np_minimo" placeholder="Est. Mín." value="5" required>
+                    <button type="submit" class="btn btn-secondary">Salvar</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>3. Posição Atual do Estoque</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Saldo</th>
+                                <th>Mínimo</th>
+                                <th>Custo Un.</th>
+                                <th>Venda Un.</th>
+                                <th>Margem</th>
+                                <th>Status</th>
+                                <th class="no-print">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_estoque">
+                            <tr><td colspan="8" style="text-align:center;">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="card">
+        <h2>Auditoria Automática de Movimentações (PDV + Estoque + Perdas)</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Operador</th>
+                        <th>Produto</th>
+                        <th>Operação / Origem</th>
+                        <th>Qtd</th>
+                        <th>Impacto (Lucro/Prejuízo)</th>
+                        <th>Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_historico">
+                    <tr><td colspan="7" style="text-align:center;">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<!-- Modal edição rápida de custo / preço / mínimo -->
+<div id="modalEditarProduto" class="modal-overlay hidden">
+    <div class="modal-box">
+        <h3 id="modalEditarTitulo">Ajustar Custo e Estoque Mínimo</h3>
+        <form id="formEditarRapido">
+            <input type="hidden" id="edit_id">
+            <div class="form-group">
+                <label for="edit_unidade">Unidade:</label>
+                <select id="edit_unidade">
+                    <option value="un">Unidade (un)</option>
+                    <option value="kg">Quilo (kg)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit_custo">Preço de Custo Unitário (R$):</label>
+                <input type="number" step="0.01" min="0" id="edit_custo" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_venda">Preço de Venda Unitário (R$):</label>
+                <input type="number" step="0.01" min="0.01" id="edit_venda" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_minimo">Estoque Mínimo para Alerta:</label>
+                <input type="number" step="0.01" min="0" id="edit_minimo" required>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <button type="button" id="btnFecharModalEditar" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="js/controle-estoque.js"></script>
+</body>
+</html>

@@ -27,6 +27,23 @@ function ler_json_input() {
     return $data;
 }
 
+function normalizar_url_upload($valor) {
+    $valor = trim((string)$valor);
+    $candidato = ltrim(str_replace(['/Cantina/', '/Cantina1/', '\\'], '', $valor), '/');
+    if ($candidato !== '' && is_file(dirname(__DIR__) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $candidato))) {
+        return $candidato;
+    }
+    if (preg_match('/^uploads\/(logo|banner)/', $candidato)) {
+        $tipo = str_contains($candidato, 'logo_') ? 'logo_*' : 'banner_*';
+        $arquivos = glob(dirname(__DIR__) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $tipo);
+        if ($arquivos) {
+            usort($arquivos, static fn($a, $b) => filemtime($b) <=> filemtime($a));
+            return 'uploads/' . basename($arquivos[0]);
+        }
+    }
+    return $valor === '' ? '' : 'LOGO_F.png';
+}
+
 // Verificar ação solicitada
 $action = isset($_GET['action']) ? $_GET['action'] : 'obter';
 
@@ -40,6 +57,12 @@ switch ($action) {
             $configs = [];
             while ($row = $result->fetch_assoc()) {
                 $configs[$row['chave']] = $row['valor'];
+            }
+            if (isset($configs['logo_url'])) {
+                $configs['logo_url'] = normalizar_url_upload($configs['logo_url']);
+            }
+            if (isset($configs['banner_url'])) {
+                $configs['banner_url'] = normalizar_url_upload($configs['banner_url']);
             }
             responder(true, 'Configurações obtidas', $configs);
         }
@@ -110,7 +133,7 @@ switch ($action) {
         
         if (move_uploaded_file($arquivo['tmp_name'], $caminho_upload)) {
             // Salvar no banco de dados
-            $url_relativa = '/Cantina/uploads/' . $nome_arquivo;
+            $url_relativa = 'uploads/' . $nome_arquivo;
             $sql = "UPDATE configuracoes SET valor = ? WHERE chave = 'logo_url'";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("s", $url_relativa);
@@ -146,7 +169,7 @@ switch ($action) {
         
         if (move_uploaded_file($arquivo['tmp_name'], $caminho_upload)) {
             // Salvar no banco de dados
-            $url_relativa = '/Cantina/uploads/' . $nome_arquivo;
+            $url_relativa = 'uploads/' . $nome_arquivo;
             $sql = "UPDATE configuracoes SET valor = ? WHERE chave = 'banner_url'";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("s", $url_relativa);

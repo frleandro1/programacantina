@@ -74,6 +74,9 @@ function normalizarFiltroGrupo(valor) {
 function resolverImagemUrl(produto) {
   const urlBanco = String(produto.imagem_url || '').trim();
   const nomeArquivo = String(produto.imagem || '').trim();
+  const base = window.location.pathname.includes('/')
+    ? window.location.pathname.replace(/\/[^/]*$/, '/')
+    : '/';
 
   if (urlBanco) {
     if (/^https?:\/\//i.test(urlBanco)) {
@@ -82,11 +85,11 @@ function resolverImagemUrl(produto) {
     if (urlBanco.startsWith('/')) {
       return `${window.location.origin}${urlBanco}`;
     }
-    return `${window.location.origin}/Cantina/${urlBanco.replace(/^\/+/, '')}`;
+    return `${window.location.origin}${base}${urlBanco.replace(/^\/+/, '')}`;
   }
 
   if (nomeArquivo) {
-    return `${window.location.origin}/Cantina/uploads/produtos/${nomeArquivo}`;
+    return `${window.location.origin}${base}uploads/produtos/${nomeArquivo}`;
   }
 
   return '';
@@ -385,7 +388,7 @@ function ajustarSeparador(texto, fallbackChar) {
 
 function obterNomeVendedorAtual() {
   const user = JSON.parse(localStorage.getItem('usuario') || '{}');
-  const nome = user.nome || user.login || user.username || user.userName || '';
+  const nome = user.username || user.login || localStorage.getItem('username') || user.nome || user.userName || '';
   return String(nome || '').trim();
 }
 
@@ -634,6 +637,10 @@ function mostrarCupom(idVenda, itens) {
     cupom += centralizarLinha(`${data}  ${hora}`, CUPOM_LARGURA) + '\n';
     const vendedorAtual = obterNomeVendedorAtual() || _cupomCustomizacoes.vendedor || 'NAO IDENTIFICADO';
     cupom += centralizarLinha(`Operador: ${vendedorAtual}`, CUPOM_LARGURA) + '\n';
+    const eventoCupom = localStorage.getItem('eventoNomeAtual');
+    if (eventoCupom && eventoCupom.trim()) {
+      cupom += centralizarLinha(`Evento: ${eventoCupom.trim()}`, CUPOM_LARGURA) + '\n';
+    }
     if (_cupomCustomizacoes.caixa) cupom += centralizarLinha(_cupomCustomizacoes.caixa, CUPOM_LARGURA) + '\n';
     cupom += sepSecao + '\n';
     cupom += centralizarLinha(_cupomCustomizacoes.tituloProdutos || 'PRODUTOS', CUPOM_LARGURA) + '\n';
@@ -821,12 +828,14 @@ async function mostrarModalFechamentoCaixa(tipo = 'logout') {
   }
   
   try {
-    // Buscar valor de abertura
-    const resAberturaRes = await fetch(`api/abertura-caixa.php?action=verificar_hoje&usuario_id=${userId}`);
+    window._dadosAberturaCache = null;
+
+    // Buscar valor de abertura da sessão exata deste login
+    const resAberturaRes = await fetch(`api/abertura-caixa.php?action=verificar_hoje&sessao_id=${sessaoId}&usuario_id=${userId}`, { cache: 'no-store' });
     const resAbertura = await resAberturaRes.json();
     
-    if (!resAbertura.sucesso || !resAbertura.dados || !resAbertura.dados.valor_abertura) {
-      alert('❌ Erro: Caixa não foi aberto ou dados não encontrados');
+    if (!resAbertura.sucesso || !resAbertura.dados) {
+      alert('❌ Erro: Sessão de caixa não encontrada');
       return;
     }
     
@@ -846,40 +855,314 @@ async function mostrarModalFechamentoCaixa(tipo = 'logout') {
     // Armazenar dados para o próximo passo
     window._dadosAberturaCache = {
       valorAbertura: valorAbertura,
+      totalVendasPdv: totalVendas,
       totalVendas: totalVendas,
       valorEsperado: valorEsperado
     };
-    
+    window._perdasFechamento = [];
+    window._queimasFechamento = [];
+
+    // Preencher selects de produtos para Perda e Queima no modal de fechamento
+    await popularProdutosFechamentoCaixa();
+
     // Preencher o modal com a sugestão
     const modal = document.getElementById('modalFechamentoCaixa');
     modal.dataset.tipo = tipo;
-    
-    // Pré-preencher com o valor esperado
-    const valorFormatado = valorEsperado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('valorFechamentoCaixa').value = valorFormatado;
+
     document.getElementById('obsFechamentoCaixa').value = '';
-    
-    // Mostrar sugestão
-    const sugestaoDiv = document.getElementById('sugestaoValorFechamento');
-    if (sugestaoDiv) {
-      sugestaoDiv.innerHTML = `
-        <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #2196F3;">
-          <div style="font-size: 12px; color: #1565c0; margin-bottom: 4px;">Cálculo</div>
-          <div style="font-size: 14px; color: #333;">
-            Abertura: <strong>R$ ${valorAbertura.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong><br>
-            Vendas: <strong>R$ ${totalVendas.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong><br>
-            <strong style="color: #2196F3;">Total Esperado: R$ ${valorFormatado}</strong>
-          </div>
-        </div>
-      `;
-    }
-    
+    renderListasFechamento();
+    atualizarResumoModalFechamento(true);
+
     modal.style.display = 'flex';
     document.getElementById('valorFechamentoCaixa').focus();
-    
+
   } catch (err) {
     console.error('Erro ao preparar fechamento:', err);
     alert('❌ Erro ao carregar dados do caixa: ' + err.message);
+  }
+}
+
+async function popularProdutosFechamentoCaixa() {
+  const selPerda = document.getElementById('fechPerdaProduto');
+  const selQueima = document.getElementById('fechQueimaProduto');
+  if (!selPerda || !selQueima) return;
+
+  let listaProd = Array.isArray(window.produtos) && window.produtos.length > 0 ? window.produtos : (typeof produtos !== 'undefined' && Array.isArray(produtos) ? produtos : []);
+  try {
+    const res = await fetch('api/produtos.php?action=listar', { cache: 'no-store' });
+    const d = await res.json();
+    if (d.sucesso && Array.isArray(d.dados)) {
+      listaProd = d.dados;
+    }
+  } catch (e) {
+    // Usa cache em memória se falhar
+  }
+
+  window._produtosFechamentoCache = listaProd;
+
+  const opcoes = ['<option value="">-- Produto --</option>'];
+  listaProd
+    .filter(p => Number(p.estoque_atual ?? p.estoque ?? 0) > 0)
+    .forEach(p => {
+      const est = Number(p.estoque_atual ?? p.estoque ?? 0);
+      const un = p.unidade || 'un';
+      opcoes.push(`<option value="${p.id}">${p.nome} (est: ${est} ${un})</option>`);
+    });
+
+  selPerda.innerHTML = opcoes.join('');
+  selQueima.innerHTML = opcoes.join('');
+
+  const qPerda = document.getElementById('fechPerdaQtd');
+  const mPerda = document.getElementById('fechPerdaMotivo');
+  const qQueima = document.getElementById('fechQueimaQtd');
+  const pQueima = document.getElementById('fechQueimaPreco');
+  const oQueima = document.getElementById('fechQueimaObs');
+  const sugQueima = document.getElementById('sugestaoQueimaFechamento');
+
+  if (qPerda) qPerda.value = '';
+  if (mPerda) mPerda.value = '';
+  if (qQueima) qQueima.value = '';
+  if (pQueima) pQueima.value = '';
+  if (oQueima) oQueima.value = '';
+  if (sugQueima) sugQueima.textContent = '';
+}
+
+function obterProdutoFechamentoPorId(id) {
+  const lista = window._produtosFechamentoCache || (typeof produtos !== 'undefined' ? produtos : []);
+  return lista.find(p => Number(p.id) === Number(id)) || null;
+}
+
+function qtdComprometidaNoFechamento(produtoId) {
+  const perdas = (window._perdasFechamento || [])
+    .filter(x => Number(x.produto_id) === Number(produtoId))
+    .reduce((acc, x) => acc + Number(x.quantidade || 0), 0);
+  const queimas = (window._queimasFechamento || [])
+    .filter(x => Number(x.produto_id) === Number(produtoId))
+    .reduce((acc, x) => acc + Number(x.quantidade || 0), 0);
+  return perdas + queimas;
+}
+
+function sugerirPrecoQueimaFechamento() {
+  const sel = document.getElementById('fechQueimaProduto');
+  const inpPreco = document.getElementById('fechQueimaPreco');
+  const sug = document.getElementById('sugestaoQueimaFechamento');
+  if (!sel || !inpPreco) return;
+
+  const prod = obterProdutoFechamentoPorId(sel.value);
+  if (!prod) {
+    inpPreco.value = '';
+    if (sug) sug.textContent = '';
+    return;
+  }
+
+  const venda = Number(prod.preco || 0);
+  const custo = Number(prod.preco_custo || 0);
+  const sugerido = (venda * 0.5).toFixed(2);
+  inpPreco.value = sugerido;
+  if (sug) {
+    sug.textContent = `Venda normal: R$ ${venda.toFixed(2).replace('.', ',')} | Custo: R$ ${custo.toFixed(2).replace('.', ',')} | Sugestão 50% OFF: R$ ${sugerido.replace('.', ',')}`;
+  }
+}
+
+function adicionarPerdaFechamento(silencioso = false) {
+  const sel = document.getElementById('fechPerdaProduto');
+  const inpQtd = document.getElementById('fechPerdaQtd');
+  const inpMotivo = document.getElementById('fechPerdaMotivo');
+  if (!sel || !inpQtd) return true;
+
+  const pid = parseInt(sel.value, 10);
+  const qtd = parseFloat(inpQtd.value);
+  const motivo = (inpMotivo ? inpMotivo.value : '').trim();
+
+  if (!pid && (!inpQtd.value || isNaN(qtd))) {
+    return true;
+  }
+  if (!pid || isNaN(qtd) || qtd <= 0) {
+    if (!silencioso) alert('Selecione o produto e informe uma quantidade válida para a perda.');
+    return false;
+  }
+
+  const prod = obterProdutoFechamentoPorId(pid);
+  if (!prod) {
+    if (!silencioso) alert('Produto não encontrado.');
+    return false;
+  }
+
+  const disponivel = Number(prod.estoque_atual ?? prod.estoque ?? 0) - qtdComprometidaNoFechamento(pid);
+  if (qtd > disponivel) {
+    alert(`Quantidade de perda para "${prod.nome}" excede o estoque disponível (${disponivel} ${prod.unidade || 'un'}).`);
+    return false;
+  }
+
+  const custo = Math.max(0, Number(prod.preco_custo || 0));
+  const prejuizo = Number((qtd * custo).toFixed(2));
+
+  window._perdasFechamento = window._perdasFechamento || [];
+  window._perdasFechamento.push({
+    produto_id: pid,
+    nome: prod.nome,
+    unidade: prod.unidade || 'un',
+    quantidade: qtd,
+    custo_unitario: custo,
+    prejuizo: prejuizo,
+    motivo: motivo
+  });
+
+  sel.value = '';
+  inpQtd.value = '';
+  if (inpMotivo) inpMotivo.value = '';
+
+  renderListasFechamento();
+  atualizarResumoModalFechamento(false);
+  return true;
+}
+
+function removerPerdaFechamento(index) {
+  if (!Array.isArray(window._perdasFechamento)) return;
+  window._perdasFechamento.splice(index, 1);
+  renderListasFechamento();
+  atualizarResumoModalFechamento(false);
+}
+
+function adicionarQueimaFechamento(silencioso = false) {
+  const sel = document.getElementById('fechQueimaProduto');
+  const inpQtd = document.getElementById('fechQueimaQtd');
+  const inpPreco = document.getElementById('fechQueimaPreco');
+  const inpObs = document.getElementById('fechQueimaObs');
+  const sug = document.getElementById('sugestaoQueimaFechamento');
+  if (!sel || !inpQtd || !inpPreco) return true;
+
+  const pid = parseInt(sel.value, 10);
+  const qtd = parseFloat(inpQtd.value);
+  const precoQueima = parseFloat(inpPreco.value);
+  const obs = (inpObs ? inpObs.value : '').trim();
+
+  if (!pid && (!inpQtd.value || isNaN(qtd))) {
+    return true;
+  }
+  if (!pid || isNaN(qtd) || qtd <= 0 || isNaN(precoQueima) || precoQueima <= 0) {
+    if (!silencioso) alert('Selecione o produto, a quantidade e o preço promocional para a queima de estoque.');
+    return false;
+  }
+
+  const prod = obterProdutoFechamentoPorId(pid);
+  if (!prod) {
+    if (!silencioso) alert('Produto não encontrado.');
+    return false;
+  }
+
+  const disponivel = Number(prod.estoque_atual ?? prod.estoque ?? 0) - qtdComprometidaNoFechamento(pid);
+  if (qtd > disponivel) {
+    alert(`Quantidade de queima para "${prod.nome}" excede o estoque disponível (${disponivel} ${prod.unidade || 'un'}).`);
+    return false;
+  }
+
+  const custo = Math.max(0, Number(prod.preco_custo || 0));
+  const receita = Number((qtd * precoQueima).toFixed(2));
+  const resultado = Number((receita - (qtd * custo)).toFixed(2));
+
+  window._queimasFechamento = window._queimasFechamento || [];
+  window._queimasFechamento.push({
+    produto_id: pid,
+    nome: prod.nome,
+    unidade: prod.unidade || 'un',
+    quantidade: qtd,
+    preco_queima: precoQueima,
+    custo_unitario: custo,
+    receita: receita,
+    resultado: resultado,
+    observacao: obs
+  });
+
+  sel.value = '';
+  inpQtd.value = '';
+  inpPreco.value = '';
+  if (inpObs) inpObs.value = '';
+  if (sug) sug.textContent = '';
+
+  renderListasFechamento();
+  atualizarResumoModalFechamento(true);
+  return true;
+}
+
+function removerQueimaFechamento(index) {
+  if (!Array.isArray(window._queimasFechamento)) return;
+  window._queimasFechamento.splice(index, 1);
+  renderListasFechamento();
+  atualizarResumoModalFechamento(true);
+}
+
+function renderListasFechamento() {
+  const divPerdas = document.getElementById('listaPerdasFechamento');
+  const divQueimas = document.getElementById('listaQueimasFechamento');
+  const perdas = window._perdasFechamento || [];
+  const queimas = window._queimasFechamento || [];
+
+  if (divPerdas) {
+    if (perdas.length === 0) {
+      divPerdas.innerHTML = '<span style="color:#999;">Nenhuma perda adicionada neste fechamento.</span>';
+    } else {
+      divPerdas.innerHTML = perdas.map((p, idx) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:6px 8px; border-radius:6px; border:1px solid #feb2b2; margin-bottom:4px;">
+          <span><strong>${p.quantidade} ${p.unidade}</strong> × ${p.nome} ${p.motivo ? `(${p.motivo})` : ''} — <strong style="color:#c53030;">-R$ ${p.prejuizo.toFixed(2).replace('.', ',')}</strong></span>
+          <button type="button" onclick="removerPerdaFechamento(${idx})" style="border:none; background:transparent; color:#c53030; font-weight:700; cursor:pointer; padding:2px 6px;">✕</button>
+        </div>
+      `).join('');
+    }
+  }
+
+  if (divQueimas) {
+    if (queimas.length === 0) {
+      divQueimas.innerHTML = '<span style="color:#999;">Nenhuma queima adicionada neste fechamento.</span>';
+    } else {
+      divQueimas.innerHTML = queimas.map((q, idx) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:6px 8px; border-radius:6px; border:1px solid #fbd38d; margin-bottom:4px;">
+          <span><strong>${q.quantidade} ${q.unidade}</strong> × ${q.nome} a R$ ${q.preco_queima.toFixed(2).replace('.', ',')} — <strong style="color:#2b6cb0;">+R$ ${q.receita.toFixed(2).replace('.', ',')}</strong></span>
+          <button type="button" onclick="removerQueimaFechamento(${idx})" style="border:none; background:transparent; color:#c05621; font-weight:700; cursor:pointer; padding:2px 6px;">✕</button>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function atualizarResumoModalFechamento(atualizarInputValor = false) {
+  if (!window._dadosAberturaCache) return;
+
+  const valorAbertura = Number(window._dadosAberturaCache.valorAbertura || 0);
+  const vendasPdv = Number(window._dadosAberturaCache.totalVendasPdv ?? window._dadosAberturaCache.totalVendas ?? 0);
+  const receitaQueima = (window._queimasFechamento || []).reduce((acc, q) => acc + Number(q.receita || 0), 0);
+  const prejuizoPerdas = (window._perdasFechamento || []).reduce((acc, p) => acc + Number(p.prejuizo || 0), 0);
+
+  const totalVendas = Number((vendasPdv + receitaQueima).toFixed(2));
+  const valorEsperado = Number((valorAbertura + totalVendas).toFixed(2));
+
+  window._dadosAberturaCache.totalVendas = totalVendas;
+  window._dadosAberturaCache.valorEsperado = valorEsperado;
+  window._dadosAberturaCache.receitaQueima = receitaQueima;
+  window._dadosAberturaCache.prejuizoPerdas = prejuizoPerdas;
+
+  const fmt = (n) => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const valorFormatado = fmt(valorEsperado);
+
+  if (atualizarInputValor) {
+    const inp = document.getElementById('valorFechamentoCaixa');
+    if (inp) inp.value = valorFormatado;
+  }
+
+  const sugestaoDiv = document.getElementById('sugestaoValorFechamento');
+  if (sugestaoDiv) {
+    sugestaoDiv.innerHTML = `
+      <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-bottom: 4px; border-left: 4px solid #2196F3;">
+        <div style="font-size: 12px; color: #1565c0; margin-bottom: 4px;">Cálculo do Caixa</div>
+        <div style="font-size: 14px; color: #333; line-height: 1.5;">
+          Abertura: <strong>R$ ${fmt(valorAbertura)}</strong><br>
+          Vendas PDV: <strong>R$ ${fmt(vendasPdv)}</strong>
+          ${receitaQueima > 0 ? `<br>Queima no Fechamento: <strong style="color:#dd6b20;">+R$ ${fmt(receitaQueima)}</strong>` : ''}
+          ${prejuizoPerdas > 0 ? `<br>Perdas Contabilizadas (Custo): <strong style="color:#e53e3e;">-R$ ${fmt(prejuizoPerdas)}</strong>` : ''}
+          <br><strong style="color: #2196F3;">Total Esperado em Caixa: R$ ${valorFormatado}</strong>
+        </div>
+      </div>
+    `;
   }
 }
 
@@ -897,9 +1180,22 @@ async function processarFechamentoCaixa(e) {
     alert('❌ Nenhuma sessão de caixa aberta');
     return;
   }
+
+  // Se o operador preencheu os campos de perda ou queima e clicou direto em "Próximo", inclui automaticamente
+  const selPerda = document.getElementById('fechPerdaProduto');
+  const inpPerdaQtd = document.getElementById('fechPerdaQtd');
+  if (selPerda && selPerda.value && inpPerdaQtd && inpPerdaQtd.value) {
+    if (!adicionarPerdaFechamento(false)) return;
+  }
+
+  const selQueima = document.getElementById('fechQueimaProduto');
+  const inpQueimaQtd = document.getElementById('fechQueimaQtd');
+  if (selQueima && selQueima.value && inpQueimaQtd && inpQueimaQtd.value) {
+    if (!adicionarQueimaFechamento(false)) return;
+  }
   
   const valorInput = document.getElementById('valorFechamentoCaixa').value;
-  const valor = parseFloat(valorInput.replace(',', '.'));
+  const valor = parseFloat(valorInput.replace(/\./g, '').replace(',', '.'));
   
   if (isNaN(valor) || valor < 0) {
     alert('❌ Valor inválido. Use formato: 100,50');
@@ -909,6 +1205,8 @@ async function processarFechamentoCaixa(e) {
   const obs = document.getElementById('obsFechamentoCaixa').value.trim();
   
   try {
+    atualizarResumoModalFechamento(false);
+
     // Usar dados já calculados quando o modal foi aberto
     let valorAbertura, totalVendas, valorEsperado;
     
@@ -928,7 +1226,7 @@ async function processarFechamentoCaixa(e) {
         }
       }
       
-      const resAberturaRes = await fetch(`api/abertura-caixa.php?action=verificar_hoje&usuario_id=${userId}`);
+      const resAberturaRes = await fetch(`api/abertura-caixa.php?action=verificar_hoje&sessao_id=${sessaoId}&usuario_id=${userId}`, { cache: 'no-store' });
       const resAbertura = await resAberturaRes.json();
       
       if (!resAbertura.sucesso || !resAbertura.dados) {
@@ -949,12 +1247,38 @@ async function processarFechamentoCaixa(e) {
     }
     
     const diferenca = valor - valorEsperado;
+    const perdas = window._perdasFechamento || [];
+    const queimas = window._queimasFechamento || [];
+    const receitaQueima = queimas.reduce((acc, q) => acc + Number(q.receita || 0), 0);
+    const prejuizoPerdas = perdas.reduce((acc, p) => acc + Number(p.prejuizo || 0), 0);
     
     // Preencher modal de relatório com os valores
     document.getElementById('relValorAbertura').textContent = 'R$ ' + valorAbertura.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('relTotalVendas').textContent = 'R$ ' + totalVendas.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('relValorEsperado').textContent = 'R$ ' + valorEsperado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('relValorInformado').textContent = 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    const boxResumoPQ = document.getElementById('relResumoPerdasQueimas');
+    if (boxResumoPQ) {
+      if (perdas.length > 0 || queimas.length > 0) {
+        let htmlPQ = '<div style="font-weight:700; margin-bottom:6px;">📋 Perdas e Queimas no Fechamento:</div>';
+        if (queimas.length > 0) {
+          htmlPQ += `<div style="color:#c05621; margin-bottom:4px;">🔥 <strong>Queima de Estoque (+R$ ${receitaQueima.toFixed(2).replace('.', ',')}):</strong><br>` +
+            queimas.map(q => `• ${q.quantidade} ${q.unidade} × ${q.nome} (R$ ${q.preco_queima.toFixed(2).replace('.', ',')}/un)`).join('<br>') +
+            '</div>';
+        }
+        if (perdas.length > 0) {
+          htmlPQ += `<div style="color:#c53030;">🗑️ <strong>Perdas Registradas (Prejuízo: -R$ ${prejuizoPerdas.toFixed(2).replace('.', ',')}):</strong><br>` +
+            perdas.map(p => `• ${p.quantidade} ${p.unidade} × ${p.nome}${p.motivo ? ' (' + p.motivo + ')' : ''}`).join('<br>') +
+            '</div>';
+        }
+        boxResumoPQ.innerHTML = htmlPQ;
+        boxResumoPQ.style.display = 'block';
+      } else {
+        boxResumoPQ.style.display = 'none';
+        boxResumoPQ.innerHTML = '';
+      }
+    }
     
     const textoObservacoes = obs ? `📝 Observações: ${obs}` : '(Sem observações)';
     document.getElementById('relObservacoes').textContent = textoObservacoes;
@@ -987,7 +1311,9 @@ async function processarFechamentoCaixa(e) {
       observacoes: obs,
       valor_abertura: valorAbertura,
       total_vendas: totalVendas,
-      valor_esperado: valorEsperado
+      valor_esperado: valorEsperado,
+      perdas: perdas,
+      queimas: queimas
     };
     
     // Mostrar relatório e esconder formulário
@@ -1023,7 +1349,9 @@ async function confirmarFechamentoCaixa() {
         observacoes: dados.observacoes,
         valor_abertura: dados.valor_abertura,
         total_vendas: dados.total_vendas,
-        valor_esperado: dados.valor_esperado
+        valor_esperado: dados.valor_esperado,
+        perdas: dados.perdas || [],
+        queimas: dados.queimas || []
       })
     });
     
@@ -1069,6 +1397,166 @@ function logout() {
   }
 }
 
+// Funções de Conexão com Eventos
+function atualizarBadgeEvento(nome) {
+  const label = document.getElementById('labelEventoNav');
+  const modalNome = document.getElementById('modalEventoAtualNome');
+  const displayNome = (nome && String(nome).trim()) ? String(nome).trim() : 'Geral';
+  if (label) {
+    label.textContent = 'Evento: ' + displayNome;
+  }
+  if (modalNome) {
+    modalNome.textContent = (displayNome === 'Geral') ? 'Nenhum (Venda Geral)' : displayNome;
+  }
+  if (displayNome !== 'Geral') {
+    localStorage.setItem('eventoNomeAtual', displayNome);
+  } else {
+    localStorage.removeItem('eventoNomeAtual');
+  }
+}
+
+async function carregarEventosSelect(selectId, eventoSelecionadoId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  try {
+    const res = await fetch('api/abertura-caixa.php?action=listar_eventos');
+    const data = await res.json();
+    if (data.sucesso && Array.isArray(data.dados)) {
+      sel.innerHTML = '<option value="">-- Sem evento (Venda Geral) --</option>';
+      data.dados.forEach(ev => {
+        const opt = document.createElement('option');
+        opt.value = ev.id;
+        opt.textContent = `${ev.nome} (${ev.status || 'planejado'})`;
+        if (eventoSelecionadoId && String(eventoSelecionadoId) === String(ev.id)) {
+          opt.selected = true;
+        }
+        sel.appendChild(opt);
+      });
+      const optNovo = document.createElement('option');
+      optNovo.value = '__novo__';
+      optNovo.textContent = '➕ Criar Novo Evento...';
+      sel.appendChild(optNovo);
+    }
+  } catch (err) {
+    console.error('Erro ao listar eventos:', err);
+  }
+}
+
+function toggleNovoEventoCache(selectEl) {
+  const wrap = document.getElementById('wrapNovoEventoCache');
+  const input = document.getElementById('novoEventoNomeCache');
+  if (!wrap) return;
+  if (selectEl.value === '__novo__') {
+    wrap.style.display = 'block';
+    if (input) input.focus();
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function toggleNovoEventoModal(selectEl) {
+  const wrap = document.getElementById('wrapNovoEventoModal');
+  const input = document.getElementById('modalNovoEventoNome');
+  if (!wrap) return;
+  if (selectEl.value === '__novo__') {
+    wrap.style.display = 'block';
+    if (input) input.focus();
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+async function abrirModalEventoVendas() {
+  const modal = document.getElementById('modalEventoVendas');
+  if (!modal) return;
+  let eventoAtualId = localStorage.getItem('eventoIdAtual');
+  let eventoAtualNome = localStorage.getItem('eventoNomeAtual');
+
+  let userId = localStorage.getItem('userId');
+  if (!userId) {
+    try {
+      const u = JSON.parse(localStorage.getItem('usuario') || '{}');
+      userId = u.id_usuario || u.id;
+    } catch (_) {}
+  }
+  if (userId) {
+    try {
+      const r = await fetch(`api/abertura-caixa.php?action=verificar_hoje&usuario_id=${userId}`);
+      const d = await r.json();
+      if (d.sucesso && d.dados) {
+        if (d.dados.evento_id) {
+          eventoAtualId = d.dados.evento_id;
+          eventoAtualNome = d.dados.evento_nome;
+        } else {
+          eventoAtualId = '';
+          eventoAtualNome = '';
+        }
+      }
+    } catch (_) {}
+  }
+
+  atualizarBadgeEvento(eventoAtualNome);
+  await carregarEventosSelect('modalSelectEvento', eventoAtualId);
+  const wrap = document.getElementById('wrapNovoEventoModal');
+  if (wrap) wrap.style.display = 'none';
+  modal.style.display = 'flex';
+}
+
+function fecharModalEventoVendas() {
+  const modal = document.getElementById('modalEventoVendas');
+  if (modal) modal.style.display = 'none';
+}
+
+async function salvarVinculoEventoModal(e) {
+  e.preventDefault();
+  const sessaoId = localStorage.getItem('sessaoCaixaId');
+  if (!sessaoId) {
+    alert('⚠️ Nenhuma sessão de caixa aberta no momento.');
+    return;
+  }
+  const select = document.getElementById('modalSelectEvento');
+  const inputNovo = document.getElementById('modalNovoEventoNome');
+  let eventoId = select ? select.value : '';
+  let eventoNome = '';
+
+  if (eventoId === '__novo__') {
+    eventoNome = inputNovo ? inputNovo.value.trim() : '';
+    if (!eventoNome) {
+      alert('Informe o nome do novo evento!');
+      if (inputNovo) inputNovo.focus();
+      return;
+    }
+    eventoId = '';
+  }
+
+  try {
+    const res = await fetch('api/abertura-caixa.php?action=vincular_evento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessao_id: parseInt(sessaoId, 10),
+        evento_id: eventoId ? parseInt(eventoId, 10) : null,
+        evento_nome: eventoNome || null
+      })
+    });
+    const data = await res.json();
+    if (data.sucesso) {
+      if (data.evento_id) {
+        localStorage.setItem('eventoIdAtual', data.evento_id);
+      } else {
+        localStorage.removeItem('eventoIdAtual');
+      }
+      atualizarBadgeEvento(data.evento_nome);
+      fecharModalEventoVendas();
+      alert('✓ Evento vinculado com sucesso ao caixa ativo!');
+    } else {
+      alert('❌ Erro: ' + (data.mensagem || 'Falha ao vincular evento'));
+    }
+  } catch (err) {
+    alert('❌ Erro de comunicação: ' + err.message);
+  }
+}
+
 // Funções de Abertura de Caixa
 function mostrarModalAberturaCache() {
   const sessaoId = localStorage.getItem('sessaoCaixaId');
@@ -1107,6 +1595,9 @@ function mostrarModalAberturaCache() {
         document.getElementById('nomeUsuarioModal').textContent = usuario;
         document.getElementById('valorAberturaCache').value = '';
         document.getElementById('obsAberturaCache').value = '';
+        carregarEventosSelect('eventoAberturaCache');
+        const wrap = document.getElementById('wrapNovoEventoCache');
+        if (wrap) wrap.style.display = 'none';
         modal.style.display = 'flex';
         document.getElementById('valorAberturaCache').focus();
       }
@@ -1133,7 +1624,7 @@ async function processarAberturaCache(e) {
   }
   
   const valorInput = document.getElementById('valorAberturaCache').value;
-  const valor = parseFloat(valorInput.replace(',', '.'));
+  const valor = parseFloat(valorInput.replace(/\./g, '').replace(',', '.'));
   
   if (isNaN(valor) || valor < 0) {
     alert('❌ Valor inválido. Use formato: 100,50');
@@ -1141,6 +1632,20 @@ async function processarAberturaCache(e) {
   }
   
   const obs = document.getElementById('obsAberturaCache').value.trim();
+  const selectEvento = document.getElementById('eventoAberturaCache');
+  const inputNovoEvento = document.getElementById('novoEventoNomeCache');
+  let eventoId = selectEvento ? selectEvento.value : '';
+  let eventoNome = '';
+
+  if (eventoId === '__novo__') {
+    eventoNome = inputNovoEvento ? inputNovoEvento.value.trim() : '';
+    eventoId = '';
+    if (!eventoNome) {
+      alert('Digite o nome do novo evento ou escolha um existente.');
+      if (inputNovoEvento) inputNovoEvento.focus();
+      return;
+    }
+  }
   
   try {
     const response = await fetch('api/abertura-caixa.php?action=registrar', {
@@ -1149,7 +1654,9 @@ async function processarAberturaCache(e) {
       body: JSON.stringify({
         sessao_id: parseInt(sessaoId),
         valor_abertura: valor,
-        observacoes: obs
+        observacoes: obs,
+        evento_id: eventoId ? parseInt(eventoId, 10) : null,
+        evento_nome: eventoNome || null
       })
     });
     
@@ -1158,11 +1665,18 @@ async function processarAberturaCache(e) {
     if (data.sucesso) {
       localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
       localStorage.setItem('valorAberturaAtual', valor);
+      if (data.evento_id) {
+        localStorage.setItem('eventoIdAtual', data.evento_id);
+      } else {
+        localStorage.removeItem('eventoIdAtual');
+      }
+      atualizarBadgeEvento(data.evento_nome);
       
       const modal = document.getElementById('modalAberturaCache');
       modal.style.display = 'none';
       
-      alert(`✓ Caixa aberto com sucesso!\nValor: R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+      const eventoMsg = data.evento_nome ? `\nEvento: ${data.evento_nome}` : '';
+      alert(`✓ Caixa aberto com sucesso!\nValor: R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}${eventoMsg}`);
     } else {
       alert('❌ Erro ao abrir caixa: ' + (data.mensagem || 'Erro desconhecido'));
     }
@@ -1200,6 +1714,28 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarConfigImpressora();
   carregarCustomizacoes();
   garantirWorkerImpressao(); // inicia o worker de impressão automaticamente
+
+  // Sincronizar status do caixa e evento vinculado
+  fetch(`api/abertura-caixa.php?action=verificar_hoje&usuario_id=${userId}`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.sucesso && d.dados) {
+        if (d.dados.id_sessao) {
+          localStorage.setItem('sessaoCaixaId', d.dados.id_sessao);
+        }
+        if (d.dados.evento_id) {
+          localStorage.setItem('eventoIdAtual', d.dados.evento_id);
+        } else {
+          localStorage.removeItem('eventoIdAtual');
+        }
+        atualizarBadgeEvento(d.dados.evento_nome);
+      } else {
+        atualizarBadgeEvento(localStorage.getItem('eventoNomeAtual'));
+      }
+    })
+    .catch(() => {
+      atualizarBadgeEvento(localStorage.getItem('eventoNomeAtual'));
+    });
   
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {

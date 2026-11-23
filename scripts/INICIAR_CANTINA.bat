@@ -2,9 +2,9 @@
 setlocal enabledelayedexpansion
 
 set "XAMPP_DIR=C:\xampp"
-set "PROJECT_DIR=C:\xampp\htdocs\Cantina"
-set "URL=http://localhost/Cantina/login-menu.html"
-set "HEALTH=http://localhost/Cantina/api/system-status.php"
+set "PROJECT_DIR=C:\xampp\htdocs\Cantina1"
+set "URL=http://localhost/Cantina1/login-menu.html"
+set "HEALTH=http://localhost/Cantina1/api/system-status.php"
 
 echo ========================================
 echo   Iniciando Cantina

@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lefro Cantina - Login</title>
+  <title>Cantina IBFC - Login</title>
   <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/login-backgrounds.css">
   <style>
@@ -220,12 +220,13 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
   <div class="login-card">
     <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
       <img src="LOGO_F.png" alt="Logo Cantina" style="height: 50px; width: auto; object-fit: contain;">
-      <span>Lefro Cantina</span>
+      <span id="nomeSistemaHeader">Cantina IBFC</span>
     </h1>
     
     <!-- FORMULÁRIO DE LOGIN -->
@@ -267,6 +268,17 @@
       
       <form id="formAberturaCaixaLogin" onsubmit="processarAberturaCaixa(event); return false;">
         <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 14px;">📅 Evento Conectado</label>
+          <select id="eventoAberturaLogin" onchange="toggleNovoEventoLogin(this)" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: white; color: #333;">
+            <option value="">-- Sem evento (Venda Geral) --</option>
+            <option value="__novo__">➕ Criar Novo Evento...</option>
+          </select>
+          <div id="wrapNovoEventoLogin" style="display: none; margin-top: 8px;">
+            <input type="text" id="novoEventoNomeLogin" placeholder="Nome do evento (ex: Culto Jovem, Retiro)" style="width: 100%; padding: 10px; border: 2px solid #27ae60; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 14px;">Valor de Abertura (R$)</label>
           <input type="text" id="valorAberturaLogin" placeholder="0,00" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box;" required>
         </div>
@@ -286,31 +298,41 @@
     </div>
   </div>
 
+  <script src="js/sistema-core.js"></script>
   <script>
     const roleLabels = {
-      'admin': 'Administrador',
-      'vendedor': 'Vendedor',
-      'administrador': 'Administrador',
-      'gestor': 'Administrador',
-      'atendente': 'Vendedor',
-      'producao': 'Vendedor',
-      'usuario': 'Vendedor'
+      admin: 'Administrador',
+      vendedor: 'Ministério',
+      administrador: 'Administrador',
+      gestor: 'Administrador',
+      atendente: 'Ministério',
+      producao: 'Ministério',
+      usuario: 'Ministério'
     };
 
+    const nomeSistemaAtual = window.CantinaSistema ? window.CantinaSistema.nomeSistema : 'Cantina IBFC';
+    const nomeSistemaHeader = document.getElementById('nomeSistemaHeader');
+    if (nomeSistemaHeader) {
+      nomeSistemaHeader.textContent = nomeSistemaAtual;
+    }
+
     const roleClassMap = {
-      'admin': 'admin',
-      'vendedor': 'vendedor',
-      'administrador': 'admin',
-      'gestor': 'admin',
-      'atendente': 'vendedor',
-      'producao': 'vendedor',
-      'usuario': 'vendedor'
+      admin: 'admin',
+      vendedor: 'vendedor',
+      administrador: 'admin',
+      gestor: 'admin',
+      atendente: 'vendedor',
+      producao: 'vendedor',
+      usuario: 'vendedor'
     };
 
     function normalizarTipoUsuario(tipo) {
-      const t = String(tipo || '').toLowerCase();
-      if (t === 'admin' || t === 'administrador' || t === 'gestor') return 'admin';
-      return 'vendedor';
+      return window.CantinaSistema ? window.CantinaSistema.normalizarTipoUsuario(tipo) : 'vendedor';
+    }
+
+    function obterRoleLabel(tipo) {
+      const valor = normalizarTipoUsuario(tipo);
+      return window.CantinaSistema ? window.CantinaSistema.rotuloTipoUsuario(tipo) : (roleLabels[valor] || 'Ministério');
     }
 
     const LEMBRAR_LOGIN_KEY = 'cantinaLembrarLogin';
@@ -323,7 +345,7 @@
         const data = JSON.parse(bruto);
         if (!data || typeof data !== 'object') return null;
         if (data.remember === false) return null;
-        if (!data.username || !data.password) return null;
+        if (!data.username) return null;
         if (data.salvoEm) {
           const salvoEm = new Date(data.salvoEm).getTime();
           const limite = Date.now() - (LEMBRAR_LOGIN_DIAS * 24 * 60 * 60 * 1000);
@@ -338,7 +360,11 @@
     }
 
     function salvarLembrarLogin(payload) {
-      localStorage.setItem(LEMBRAR_LOGIN_KEY, JSON.stringify(payload));
+      localStorage.setItem(LEMBRAR_LOGIN_KEY, JSON.stringify({
+        username: payload.username,
+        remember: true,
+        salvoEm: payload.salvoEm
+      }));
     }
 
     function limparLembrarLogin() {
@@ -361,7 +387,6 @@
       }
       chk.checked = true;
       document.getElementById('username').value = data.username || '';
-      document.getElementById('password').value = data.password || '';
     })();
 
     document.getElementById('formLogin').addEventListener('submit', async (e) => {
@@ -382,13 +407,12 @@
         if (data.sucesso) {
           const userType = normalizarTipoUsuario(data.usuario?.tipo || 'vendedor');
           const userName = data.usuario?.nome || username;
-          const roleLabel = roleLabels[userType.toLowerCase()] || 'Usuário';
+          const roleLabel = obterRoleLabel(userType);
           const badgeClass = roleClassMap[userType.toLowerCase()] || 'usuario';
 
           if (rememberPassword && rememberPassword.checked) {
             salvarLembrarLogin({
               username,
-              password,
               remember: true,
               salvoEm: new Date().toISOString()
             });
@@ -404,9 +428,17 @@
           localStorage.setItem('userId', data.usuario?.id || '');
           localStorage.setItem('userName', userName);
           
-          // Salvar sessão de caixa
+          // Zerar dados residuais do login anterior para evitar erro na contagem
+          localStorage.removeItem('valorAberturaAtual');
+          localStorage.removeItem('eventoIdAtual');
+          localStorage.removeItem('eventoNomeAtual');
+          localStorage.removeItem('aberturaCaixaEm');
+
+          // Salvar nova sessão de caixa zerada
           if (data.sessao_caixa_id) {
-            localStorage.setItem('sessaoCaixaId', data.sessao_caixa_id);
+            localStorage.setItem('sessaoCaixaId', String(data.sessao_caixa_id));
+          } else {
+            localStorage.removeItem('sessaoCaixaId');
           }
           
           // Mostrar tela de sucesso
@@ -439,9 +471,49 @@
     });
 
     // ===== FUNÇÕES DO MODAL DE ABERTURA DE CAIXA =====
+    function toggleNovoEventoLogin(sel) {
+      const wrap = document.getElementById('wrapNovoEventoLogin');
+      const input = document.getElementById('novoEventoNomeLogin');
+      if (!wrap) return;
+      if (sel.value === '__novo__') {
+        wrap.style.display = 'block';
+        if (input) input.focus();
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+
+    async function carregarEventosLogin() {
+      const sel = document.getElementById('eventoAberturaLogin');
+      if (!sel) return;
+      try {
+        const res = await fetch('api/abertura-caixa.php?action=listar_eventos');
+        const d = await res.json();
+        if (d.sucesso && Array.isArray(d.dados)) {
+          sel.innerHTML = '<option value="">-- Sem evento (Venda Geral) --</option>';
+          d.dados.forEach(ev => {
+            const opt = document.createElement('option');
+            opt.value = ev.id;
+            opt.textContent = `${ev.nome} (${ev.status || 'planejado'})`;
+            sel.appendChild(opt);
+          });
+          const optNovo = document.createElement('option');
+          optNovo.value = '__novo__';
+          optNovo.textContent = '➕ Criar Novo Evento...';
+          sel.appendChild(optNovo);
+        }
+      } catch (err) {
+        console.error('Erro ao listar eventos:', err);
+      }
+    }
     
     function mostrarModalAberturaCaixa() {
       console.log('=== Abrindo modal de abertura de caixa ===');
+      
+      // Carregar lista de eventos
+      carregarEventosLogin();
+      const wrapNovo = document.getElementById('wrapNovoEventoLogin');
+      if (wrapNovo) wrapNovo.style.display = 'none';
       
       // Verificar se elemento existe
       const modal = document.getElementById('modalAberturaCaixa');
@@ -502,6 +574,12 @@
                 localStorage.setItem('sessaoCaixaId', sessao.id_sessao);
                 localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
                 localStorage.setItem('valorAberturaAtual', sessao.valor_abertura || '0');
+                if (sessao.evento_id) {
+                  localStorage.setItem('eventoIdAtual', sessao.evento_id);
+                }
+                if (sessao.evento_nome) {
+                  localStorage.setItem('eventoNomeAtual', sessao.evento_nome);
+                }
                 setTimeout(() => window.location.href = 'vendas.html', 500);
               } else {
                 // Se existe mas valor_abertura é vazio/zero, mostra o modal para preencher
@@ -537,12 +615,28 @@
         return;
       }
       
-      const valor = parseFloat(valorInput.replace(',', '.'));
+      const valor = parseFloat(valorInput.replace(/\./g, '').replace(',', '.'));
       
       if (isNaN(valor) || valor < 0) {
         erroDiv.textContent = 'Valor inválido';
         erroDiv.style.display = 'block';
         return;
+      }
+
+      const selectEvento = document.getElementById('eventoAberturaLogin');
+      const inputNovoEvento = document.getElementById('novoEventoNomeLogin');
+      let eventoId = selectEvento ? selectEvento.value : '';
+      let eventoNome = '';
+
+      if (eventoId === '__novo__') {
+        eventoNome = inputNovoEvento ? inputNovoEvento.value.trim() : '';
+        eventoId = '';
+        if (!eventoNome) {
+          erroDiv.textContent = 'Informe o nome do novo evento ou selecione um existente.';
+          erroDiv.style.display = 'block';
+          if (inputNovoEvento) inputNovoEvento.focus();
+          return;
+        }
       }
       
       try {
@@ -553,7 +647,9 @@
             sessao_id: parseInt(sessaoCaixaId, 10),
             usuario_id: parseInt(userId, 10),
             valor_abertura: valor,
-            observacoes: obsInput
+            observacoes: obsInput,
+            evento_id: eventoId ? parseInt(eventoId, 10) : null,
+            evento_nome: eventoNome || null
           })
         });
         
@@ -562,6 +658,16 @@
         if (resultado.sucesso) {
           localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
           localStorage.setItem('valorAberturaAtual', valor.toString());
+          if (resultado.evento_id) {
+            localStorage.setItem('eventoIdAtual', resultado.evento_id);
+          } else {
+            localStorage.removeItem('eventoIdAtual');
+          }
+          if (resultado.evento_nome) {
+            localStorage.setItem('eventoNomeAtual', resultado.evento_nome);
+          } else {
+            localStorage.removeItem('eventoNomeAtual');
+          }
           window.location.href = 'vendas.html';
         } else {
           erroDiv.textContent = resultado.mensagem || 'Erro ao abrir caixa';
@@ -571,6 +677,7 @@
         erroDiv.textContent = 'Erro ao conectar: ' + err.message;
         erroDiv.style.display = 'block';
       }
+    }
     }
 
     function cancelarAberturaCaixa() {

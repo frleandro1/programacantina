@@ -23,16 +23,18 @@ CREATE TABLE IF NOT EXISTS produtos (
     id_produto INT PRIMARY KEY AUTO_INCREMENT,
     id INT UNIQUE,
     nome VARCHAR(100) NOT NULL,
+    unidade ENUM('un', 'kg') NOT NULL DEFAULT 'un',
     descricao TEXT,
-    preco DECIMAL(10, 2) NOT NULL,
+    preco DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     preco_venda DECIMAL(10, 2),
-    preco_custo DECIMAL(10, 2),
+    preco_custo DECIMAL(10, 2) DEFAULT 0.00,
     categoria VARCHAR(50),
     tipo_categoria VARCHAR(50),
     estoque INT DEFAULT 0,
-    estoque_atual INT DEFAULT 0,
+    estoque_atual DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+    estoque_minimo DECIMAL(10, 3) NOT NULL DEFAULT 5.000,
     imagem VARCHAR(255),
-    status VARCHAR(20) DEFAULT 'active',
+    status VARCHAR(20) DEFAULT 'ativo',
     data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -85,22 +87,34 @@ CREATE TABLE IF NOT EXISTS itens_venda (
     INDEX idx_produto (id_produto)
 );
 
--- Tabela de movimentações de estoque
+-- Tabela de movimentações de estoque e contabilidade automática (lucros/prejuízos)
 CREATE TABLE IF NOT EXISTS movimentacoes (
     id INT PRIMARY KEY AUTO_INCREMENT,
     produto_id INT NOT NULL,
     id_produto INT,
-    tipo VARCHAR(20),
-    quantidade INT,
+    tipo VARCHAR(30) NOT NULL,
+    quantidade DECIMAL(10, 3) NOT NULL DEFAULT 0.000,
+    valor_unitario_praticado DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    custo_unitario_praticado DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    resultado_financeiro DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     descricao TEXT,
     usuario_id INT,
     id_usuario INT,
+    venda_id INT NULL,
+    item_venda_id INT NULL,
+    sessao_caixa_id INT NULL,
+    produto_destino_id INT NULL,
+    quantidade_gerada DECIMAL(10, 3) NULL,
+    origem VARCHAR(30) NOT NULL DEFAULT 'MANUAL',
     data_movimentacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_produto) REFERENCES produtos(id_produto),
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
     INDEX idx_produto (id_produto),
-    INDEX idx_data (data_movimentacao)
+    INDEX idx_data (data_movimentacao),
+    INDEX idx_mov_venda (venda_id),
+    INDEX idx_mov_sessao (sessao_caixa_id),
+    INDEX idx_mov_tipo_data (tipo, data_movimentacao)
 );
 
 -- Tabela de sessões de caixa
@@ -123,6 +137,43 @@ CREATE TABLE IF NOT EXISTS caixa_sessoes (
     INDEX idx_abertura (abertura_caixa)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Controle financeiro integrado às vendas e aos caixas
+CREATE TABLE IF NOT EXISTS financeiro_eventos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    data_evento DATE NOT NULL,
+    status ENUM('rascunho', 'finalizado') NOT NULL DEFAULT 'rascunho',
+    documento LONGTEXT NOT NULL,
+    versao INT NOT NULL DEFAULT 1,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS financeiro_evento_caixas (
+    sessao_id INT PRIMARY KEY,
+    evento_id INT NOT NULL,
+    FOREIGN KEY (sessao_id) REFERENCES caixa_sessoes(id_sessao),
+    FOREIGN KEY (evento_id) REFERENCES financeiro_eventos(id),
+    INDEX idx_evento (evento_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS financeiro_transferencias (
+    origem_evento INT NOT NULL,
+    produto_id INT NOT NULL,
+    lote_indice INT NOT NULL,
+    destino_evento INT NOT NULL,
+    PRIMARY KEY (origem_evento, produto_id, lote_indice),
+    FOREIGN KEY (origem_evento) REFERENCES financeiro_eventos(id),
+    FOREIGN KEY (destino_evento) REFERENCES financeiro_eventos(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS financeiro_receitas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    documento LONGTEXT NOT NULL,
+    versao INT NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Tabela de configurações
 CREATE TABLE IF NOT EXISTS configuracoes (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -141,7 +192,7 @@ ON DUPLICATE KEY UPDATE password = SHA2('admin123', 256), senha = SHA2('admin123
 
 -- Inserir configurações padrão
 INSERT INTO configuracoes (chave, valor, tipo, descricao) VALUES
-('nome_cantina', 'Programa Cantina', 'string', 'Nome da cantina exibido no sistema'),
+('nome_cantina', 'Cantina IBFC', 'string', 'Nome da cantina exibido no sistema'),
 ('cor_primaria', '#ff7a45', 'color', 'Cor primária do tema'),
 ('cor_secundaria', '#3498db', 'color', 'Cor secundária do tema'),
 ('cor_acentuacao', '#e74c3c', 'color', 'Cor de acentuação'),

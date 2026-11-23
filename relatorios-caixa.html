@@ -3,8 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Relatórios de Caixa - Lefro Cantina</title>
+  <title>Relatórios de Caixa - Cantina IBFC</title>
   <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/relatorios-a4.css">
+  <script src="js/relatorios-a4.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
     body {
@@ -334,12 +336,14 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>📊 Relatórios de Caixa</h1>
       <div class="header-buttons">
+        <a class="btn btn-secondary" href="financeiro.html">Lucro por evento</a>
         <button class="btn btn-secondary" onclick="exportarPDF()">📥 Exportar PDF</button>
         <button class="btn btn-primary" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
         <button class="btn" style="background: #95a5a6; color: white;" onclick="voltarDashboard()">↩️ Voltar</button>
@@ -385,7 +389,7 @@
         <div class="valor" id="totalVendas">R$ 0,00</div>
       </div>
       <div class="card red">
-        <h3>Lucro Médio</h3>
+        <h3>Variação Média de Caixa</h3>
         <div class="valor" id="diferenca">R$ 0,00</div>
       </div>
     </div>
@@ -407,12 +411,13 @@
             <tr>
               <th>Sessão ID</th>
               <th>Usuário</th>
+              <th>Evento</th>
               <th>Abertura</th>
               <th>Valor Abertura</th>
               <th>Total de Vendas</th>
               <th>Fechamento</th>
               <th>Valor Fechamento</th>
-              <th>Lucro</th>
+              <th>Variação de Caixa</th>
               <th>Status</th>
               <th>Ações</th>
             </tr>
@@ -431,13 +436,15 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
   <script>
     let todosOsDados = [];
+    let graficoInstance = null;
+    const usuariosCache = new Map();
 
     function calcularMetricas(item) {
       const valorAbertura = parseFloat(item.valor_abertura || 0);
       const totalVendas = parseFloat(item.total_vendas || 0);
       const valorFechamento = parseFloat(item.valor_fechamento || 0);
       const status = String(item.status || '').toLowerCase();
-      const sessaoFechada = status === 'fechado' && valorFechamento > 0;
+      const sessaoFechada = status === 'fechado';
       const valorEsperado = valorAbertura + totalVendas;
       const lucro = sessaoFechada ? (valorFechamento - valorAbertura) : null;
       const diferencaCaixa = sessaoFechada ? (valorFechamento - valorEsperado) : null;
@@ -484,6 +491,9 @@
           carregarUsuarios();
           renderizarGrafico();
         } else {
+          todosOsDados = [];
+          atualizarResumos();
+          renderizarGrafico();
           mostrarVazio();
         }
       } catch (err) {
@@ -524,6 +534,7 @@
         tr.innerHTML = `
           <td><strong>#${linha.id_sessao}</strong></td>
           <td>${linha.login_usuario}</td>
+          <td><span style="display:inline-block; padding: 3px 8px; border-radius: 6px; font-size: 12px; background: ${linha.evento_nome ? '#e8f4fd' : '#f5f5f5'}; color: ${linha.evento_nome ? '#1976d2' : '#777'}; font-weight: 600;">${linha.evento_nome || 'Geral'}</span></td>
           <td>${aberturaFormatada}</td>
           <td class="valor-moeda">${formatarMoeda(valorAbertura)}</td>
           <td class="valor-moeda">${formatarMoeda(totalVendas)}</td>
@@ -565,6 +576,10 @@
 
     function renderizarGrafico() {
       if (todosOsDados.length === 0) {
+        if (graficoInstance) {
+          graficoInstance.destroy();
+          graficoInstance = null;
+        }
         document.getElementById('graficoContainer').style.display = 'none';
         return;
       }
@@ -588,8 +603,12 @@
 
       document.getElementById('graficoContainer').style.display = 'block';
 
+      if (graficoInstance) {
+        graficoInstance.destroy();
+      }
+
       const ctx = document.getElementById('grafico').getContext('2d');
-      new Chart(ctx, {
+      graficoInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
@@ -637,15 +656,19 @@
 
     async function carregarUsuarios() {
       try {
-        const usuarios = [...new Set(todosOsDados.map(d => ({ id: d.id_usuario, nome: d.login_usuario })))];
+        todosOsDados.forEach(d => {
+          if (d.id_usuario && !usuariosCache.has(String(d.id_usuario))) {
+            usuariosCache.set(String(d.id_usuario), d.login_usuario);
+          }
+        });
         const select = document.getElementById('usuarioFiltro');
         const valorAnterior = select.value;
 
-        const opçõesHTML = usuarios.map(u => 
-          `<option value="${u.id}">${u.nome}</option>`
+        const opcoesHTML = Array.from(usuariosCache.entries()).map(([id, nome]) => 
+          `<option value="${id}">${nome}</option>`
         ).join('');
         
-        select.innerHTML = '<option value="">Todos os usuários</option>' + opçõesHTML;
+        select.innerHTML = '<option value="">Todos os usuários</option>' + opcoesHTML;
         select.value = valorAnterior;
       } catch (err) {
         console.error('Erro ao carregar usuários:', err);
@@ -676,7 +699,7 @@ Abertura: ${new Date(item.abertura_caixa).toLocaleString('pt-BR')}
     Total de Vendas: ${formatarMoeda(totalVendas)}
     Valor Esperado no Caixa: ${formatarMoeda(metricas.valorEsperado)}
     Valor de Fechamento: ${metricas.sessaoFechada ? formatarMoeda(valorFechamento) : '-'}
-    Lucro (Fechamento - Abertura): ${lucro === null ? '-' : formatarMoeda(lucro)}
+    Variação de Caixa (Fechamento - Abertura, não é lucro): ${lucro === null ? '-' : formatarMoeda(lucro)}
     Diferença de Caixa: ${metricas.diferencaCaixa === null ? '-' : formatarMoeda(metricas.diferencaCaixa)}
 Observações: ${item.observacoes || 'Nenhuma'}
 Status: ${item.status}
@@ -687,9 +710,16 @@ Status: ${item.status}
       if (!confirm('Deseja fechar esta sessão de caixa?')) return;
 
       const valor = prompt('Valor de fechamento (R$):');
-      if (!valor) return;
+      if (valor === null || valor.trim() === '') return;
+
+      const valorLimpo = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+      if (isNaN(valorLimpo) || valorLimpo < 0) {
+        alert('❌ Valor de fechamento inválido.');
+        return;
+      }
 
       const obs = prompt('Observações:') || '';
+      const item = todosOsDados.find(d => d.id_sessao === sessaoId);
 
       try {
         const resp = await fetch('api/caixa.php?action=fechar', {
@@ -697,7 +727,8 @@ Status: ${item.status}
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessao_id: sessaoId,
-            valor_fechamento: parseFloat(valor.replace(',', '.')),
+            valor_abertura: item ? parseFloat(item.valor_abertura || 0) : 0,
+            valor_fechamento: valorLimpo,
             observacoes: obs
           })
         });
@@ -734,6 +765,7 @@ Status: ${item.status}
         return [
           `#${item.id_sessao}`,
           item.login_usuario,
+          item.evento_nome || 'Geral',
           new Date(item.abertura_caixa).toLocaleString('pt-BR'),
           `R$ ${metricas.valorAbertura.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           `R$ ${metricas.totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -746,7 +778,7 @@ Status: ${item.status}
 
       doc.autoTable({
         startY: 30,
-        head: [['Sessão', 'Usuário', 'Abertura', 'Valor Abertura', 'Total de Vendas', 'Fechamento', 'Valor Fechamento', 'Lucro', 'Status']],
+        head: [['Sessão', 'Usuário', 'Evento', 'Abertura', 'Valor Abertura', 'Total de Vendas', 'Fechamento', 'Valor Fechamento', 'Variação de Caixa', 'Status']],
         body: rows,
         theme: 'grid',
         styles: { fontSize: 8 },
@@ -761,12 +793,13 @@ Status: ${item.status}
       let html = '<table style="width: 100%; border-collapse: collapse;"><thead><tr>';
       html += '<th style="border: 1px solid #000; padding: 8px;">Sessão</th>';
       html += '<th style="border: 1px solid #000; padding: 8px;">Usuário</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Evento</th>';
       html += '<th style="border: 1px solid #000; padding: 8px;">Abertura</th>';
       html += '<th style="border: 1px solid #000; padding: 8px;">Valor Abertura</th>';
       html += '<th style="border: 1px solid #000; padding: 8px;">Total de Vendas</th>';
       html += '<th style="border: 1px solid #000; padding: 8px;">Fechamento</th>';
       html += '<th style="border: 1px solid #000; padding: 8px;">Valor Fechamento</th>';
-      html += '<th style="border: 1px solid #000; padding: 8px;">Lucro</th>';
+      html += '<th style="border: 1px solid #000; padding: 8px;">Variação de Caixa</th>';
       html += '</tr></thead><tbody>';
 
       todosOsDados.forEach(item => {
@@ -779,6 +812,7 @@ Status: ${item.status}
         html += `<tr>
           <td style="border: 1px solid #000; padding: 8px;">#${item.id_sessao}</td>
           <td style="border: 1px solid #000; padding: 8px;">${item.login_usuario}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${item.evento_nome || 'Geral'}</td>
           <td style="border: 1px solid #000; padding: 8px;">${new Date(item.abertura_caixa).toLocaleString('pt-BR')}</td>
           <td style="border: 1px solid #000; padding: 8px;">${formatarMoeda(valorAbertura)}</td>
           <td style="border: 1px solid #000; padding: 8px;">${formatarMoeda(totalVendas)}</td>
@@ -789,9 +823,24 @@ Status: ${item.status}
       });
 
       html += '</tbody></table>';
-      janela.document.write('<html><body>' + html + '</body></html>');
+      janela.document.write(`<html><head><style>
+        @page{size:A4 landscape;margin:6mm}
+        html,body{margin:0;padding:0;background:#fff}
+        table{width:100%;border-collapse:collapse;table-layout:auto}
+        th,td{border:1px solid #000;padding:2mm;font-size:7pt;line-height:1.15;overflow-wrap:anywhere}
+        th{font-weight:700;background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        thead{display:table-header-group}
+        tr{break-inside:avoid;page-break-inside:avoid}
+      </style></head><body>${html}<script>
+        window.addEventListener('beforeprint',function(){
+          var largura=285*96/25.4, altura=198*96/25.4;
+          var escala=Math.min(1,largura/document.documentElement.scrollWidth,altura/document.documentElement.scrollHeight);
+          document.body.style.zoom=Math.max(.1,escala);
+        });
+      <\/script></body></html>`);
       janela.document.close();
-      janela.print();
+      janela.focus();
+      setTimeout(function(){ janela.print(); }, 150);
     }
 
     function voltarDashboard() {

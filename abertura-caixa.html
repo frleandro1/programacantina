@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lefro Cantina - Abertura de Caixa</title>
+  <title>Cantina IBFC - Abertura de Caixa</title>
   <link rel="stylesheet" href="css/theme.css">
   <style>
     body {
@@ -180,6 +180,7 @@
       100% { transform: rotate(360deg); }
     }
   </style>
+  <link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
   <div class="caixa-card">
@@ -200,6 +201,17 @@
     </div>
 
     <form id="formAberturaCaixa">
+      <div class="form-group">
+        <label for="eventoAbertura">📅 Evento Conectado</label>
+        <select id="eventoAbertura" onchange="toggleNovoEvento(this)" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box; background: white; color: #333;">
+          <option value="">-- Sem evento (Venda Geral) --</option>
+          <option value="__novo__">➕ Criar Novo Evento...</option>
+        </select>
+        <div id="wrapNovoEvento" style="display: none; margin-top: 8px;">
+          <input type="text" id="novoEventoNome" placeholder="Nome do evento (ex: Culto Jovem, Retiro)" style="width: 100%; padding: 10px; border: 2px solid #27ae60; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="valorAbertura">Valor de Abertura (R$)</label>
         <input
@@ -267,9 +279,46 @@
       e.target.value = valor;
     });
 
+    function toggleNovoEvento(sel) {
+      const wrap = document.getElementById('wrapNovoEvento');
+      const input = document.getElementById('novoEventoNome');
+      if (!wrap) return;
+      if (sel.value === '__novo__') {
+        wrap.style.display = 'block';
+        if (input) input.focus();
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+
+    async function carregarEventosAbertura() {
+      const sel = document.getElementById('eventoAbertura');
+      if (!sel) return;
+      try {
+        const res = await fetch('api/abertura-caixa.php?action=listar_eventos');
+        const d = await res.json();
+        if (d.sucesso && Array.isArray(d.dados)) {
+          sel.innerHTML = '<option value="">-- Sem evento (Venda Geral) --</option>';
+          d.dados.forEach(ev => {
+            const opt = document.createElement('option');
+            opt.value = ev.id;
+            opt.textContent = `${ev.nome} (${ev.status || 'planejado'})`;
+            sel.appendChild(opt);
+          });
+          const optNovo = document.createElement('option');
+          optNovo.value = '__novo__';
+          optNovo.textContent = '➕ Criar Novo Evento...';
+          sel.appendChild(optNovo);
+        }
+      } catch (err) {
+        console.error('Erro ao listar eventos:', err);
+      }
+    }
+
     // Carregar dados do usuário
     async function carregarDadosUsuario() {
       try {
+        carregarEventosAbertura();
         const usuario = localStorage.getItem('userName') || localStorage.getItem('username') || 'Usuário';
         const userId = localStorage.getItem('userId');
         document.getElementById('nomeUsuario').textContent = usuario;
@@ -287,6 +336,12 @@
               localStorage.setItem('sessaoCaixaId', sessaoHoje.id_sessao);
               localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
               localStorage.setItem('valorAberturaAtual', sessaoHoje.valor_abertura || '0');
+              if (sessaoHoje.evento_id) {
+                localStorage.setItem('eventoIdAtual', sessaoHoje.evento_id);
+              }
+              if (sessaoHoje.evento_nome) {
+                localStorage.setItem('eventoNomeAtual', sessaoHoje.evento_nome);
+              }
               setTimeout(() => {
                 window.location.href = 'vendas.html';
               }, 500);
@@ -313,6 +368,20 @@
       const valorAbertura = document.getElementById('valorAbertura').value;
       const observacoes = document.getElementById('observacoes').value;
       const sessaoCaixaId = localStorage.getItem('sessaoCaixaId');
+      const selectEvento = document.getElementById('eventoAbertura');
+      const inputNovoEvento = document.getElementById('novoEventoNome');
+      let eventoId = selectEvento ? selectEvento.value : '';
+      let eventoNome = '';
+
+      if (eventoId === '__novo__') {
+        eventoNome = inputNovoEvento ? inputNovoEvento.value.trim() : '';
+        eventoId = '';
+        if (!eventoNome) {
+          mostrarErro('Informe o nome do novo evento ou selecione um existente');
+          if (inputNovoEvento) inputNovoEvento.focus();
+          return;
+        }
+      }
 
       if (!valorAbertura || valorAbertura === '0,00') {
         mostrarErro('Informe um valor de abertura válido');
@@ -325,7 +394,7 @@
       }
 
       // Parse do valor
-      const valor = parseFloat(valorAbertura.replace(',', '.'));
+      const valor = parseFloat(valorAbertura.replace(/\./g, '').replace(',', '.'));
 
       if (isNaN(valor) || valor < 0) {
         mostrarErro('Valor inválido');
@@ -347,7 +416,9 @@
           body: JSON.stringify({
             sessao_id: parseInt(sessaoCaixaId, 10),
             valor_abertura: valor,
-            observacoes: observacoes
+            observacoes: observacoes,
+            evento_id: eventoId ? parseInt(eventoId, 10) : null,
+            evento_nome: eventoNome || null
           })
         });
 
@@ -356,6 +427,18 @@
         if (resultado.sucesso) {
           localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
           localStorage.setItem('valorAberturaAtual', valor.toString());
+          const evId = resultado.dados?.evento_id ?? resultado.evento_id;
+          const evNome = resultado.dados?.evento_nome ?? resultado.evento_nome;
+          if (evId) {
+            localStorage.setItem('eventoIdAtual', evId);
+          } else {
+            localStorage.removeItem('eventoIdAtual');
+          }
+          if (evNome) {
+            localStorage.setItem('eventoNomeAtual', evNome);
+          } else {
+            localStorage.removeItem('eventoNomeAtual');
+          }
           
           mostrarSucesso('✓ Caixa aberto com sucesso!');
           setTimeout(() => {

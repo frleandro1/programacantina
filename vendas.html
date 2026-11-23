@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -1124,21 +1124,22 @@ body {
   object-fit: cover;
 }
 </style>
+<link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
 <div class="topbar">
   <div class="brand">
     <!-- Logo com fallback visual -->
-    <div style="display: inline-flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 8px; margin-right: 5px;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 100px; height: 70px; background: rgba(255,255,255,0.1); border-radius: 8px; margin-right: 5px;">
       <img 
         src="LOGO_F.png" 
         alt="Logo Cantina" 
         class="brand-logo"
-        style="display: block;"
+        style="display: block;" 
         onerror="this.style.display='none'; this.parentElement.textContent='🍽️';"
       >
     </div>
-    <span style="font-size: 18px; font-weight: bold;">LefroCantina</span>
+    <span style="font-size: 18px; font-weight: bold;">Cantina IBFC</span>
   </div>
   <button class="hamburger" id="hamburguerBtn" aria-label="Menu" style="display:none;" onclick="toggleNav()">
     <span></span><span></span><span></span>
@@ -1146,6 +1147,8 @@ body {
   <nav class="nav" id="navMenu" onclick="fecharNavFora(event)">
     <div class="nav-menu">
       <a href="dashboard.html" onclick="return abrirJanelaProducao(event)">Produção</a>
+      <a href="controle-estoque.html" style="color: #ffffff; font-weight: 600;">Estoque &amp; Perdas</a>
+      <a href="#" onclick="abrirModalEventoVendas(); return false;" id="btnEventoNav" style="color: #ffffff; font-weight: 600; background: rgba(255,255,255,0.18); padding: 5px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; border: 1px solid rgba(255,255,255,0.25);" title="Clique para ver ou vincular evento ao caixa"><span>📅</span> <span id="labelEventoNav">Evento: Geral</span></a>
       <a href="#" onclick="mostrarModalAberturaCache(); return false;" style="color: #ffffff; font-weight: 600;">Abertura de Caixa</a>
       <a href="#" onclick="finalizarCaixaDiario(); return false;" style="color: #ffffff; font-weight: 600;">Finalizar Caixa</a>
       <a href="login-menu.html" onclick="logout(); return false;">Sair</a>
@@ -1227,7 +1230,8 @@ body {
     </div>
   </div>
 </div>
-<script src="js/vendas.js?v=20260630_sync2"></script>
+<script src="js/sistema-core.js"></script>
+<script src="js/vendas.js?v=20261123_pq2"></script>
 <script>
 // Formatação de moeda para input de fechamento de caixa
 setTimeout(function() {
@@ -1383,17 +1387,21 @@ document.addEventListener('DOMContentLoaded', () => {
 function abrirJanelaProducao(event) {
   if (event) event.preventDefault();
 
+  const largura = window.screen.availWidth;
+  const altura = window.screen.availHeight;
   const popup = window.open(
-    'dashboard.html',
+    'dashboard.html?v=20261020_producao_produtos',
     'janelaProducao',
-    'width=1400,height=900,menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes'
+    `width=${largura},height=${altura},left=0,top=0,fullscreen=yes,menubar=no,toolbar=no,location=no,resizable=yes,scrollbars=yes`
   );
 
   if (!popup) {
-    window.location.href = 'dashboard.html';
+    window.location.href = 'dashboard.html?v=20261020_producao_produtos';
     return false;
   }
 
+  popup.moveTo(0, 0);
+  popup.resizeTo(largura, altura);
   popup.focus();
   return false;
 }
@@ -1401,8 +1409,8 @@ function abrirJanelaProducao(event) {
 <script>
 // Controlar visibilidade de links baseado no tipo de usuário
 document.addEventListener('DOMContentLoaded', () => {
-  const rawType = (localStorage.getItem('userType') || 'vendedor').toLowerCase();
-  const userType = (rawType === 'admin' || rawType === 'administrador' || rawType === 'gestor') ? 'admin' : 'vendedor';
+  const rawType = localStorage.getItem('userType') || 'vendedor';
+  const userType = window.CantinaSistema ? window.CantinaSistema.normalizarTipoUsuario(rawType) : 'vendedor';
   localStorage.setItem('userType', userType);
   
   // Se for vendedor, esconder link de Administração e ações restritas
@@ -1429,6 +1437,16 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="padding: 10px; background: #f5f5f5; border-radius: 8px; color: #333;" id="nomeUsuarioModal">-</div>
       </div>
       <div>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">📅 Evento Conectado</label>
+        <select id="eventoAberturaCache" onchange="toggleNovoEventoCache(this)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: white; color: #333;">
+          <option value="">-- Sem evento (Venda Geral) --</option>
+          <option value="__novo__">➕ Criar Novo Evento...</option>
+        </select>
+        <div id="wrapNovoEventoCache" style="display: none; margin-top: 8px;">
+          <input type="text" id="novoEventoNomeCache" placeholder="Nome do novo evento (ex: Culto de Jovens, Retiro)" style="width: 100%; padding: 10px; border: 1.5px solid #4CAF50; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        </div>
+      </div>
+      <div>
         <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Valor de Abertura (R$) *</label>
         <input type="text" id="valorAberturaCache" placeholder="0,00" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;" required>
       </div>
@@ -1444,22 +1462,86 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<!-- Modal de Conexão de Evento na Venda -->
+<div id="modalEventoVendas" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+  <div style="background: white; border-radius: 12px; padding: 24px; width: min(440px, 90vw); max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 style="margin: 0; color: #333; font-size: 20px;">📅 Evento Conectado</h2>
+      <button type="button" onclick="fecharModalEventoVendas()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #888; line-height: 1;">&times;</button>
+    </div>
+    <p style="margin: 0 0 16px 0; color: #666; font-size: 13px; line-height: 1.4;">
+      Tudo o que for comercializado neste caixa ficará vinculado ao evento escolhido, contabilizando nos relatórios e no financeiro.
+    </p>
+    <div style="background: #eef6ff; border-left: 4px solid #1976d2; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px;">
+      <div style="font-size: 12px; color: #555;">Evento atual vinculado ao caixa:</div>
+      <div id="modalEventoAtualNome" style="font-size: 15px; font-weight: bold; color: #0d47a1;">Nenhum (Venda Geral)</div>
+    </div>
+    <form id="formVincularEvento" onsubmit="salvarVinculoEventoModal(event)" style="display: flex; flex-direction: column; gap: 14px;">
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Selecionar ou Criar Evento</label>
+        <select id="modalSelectEvento" onchange="toggleNovoEventoModal(this)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: white; color: #333;">
+          <option value="">-- Sem evento (Venda Geral) --</option>
+          <option value="__novo__">➕ Criar Novo Evento...</option>
+        </select>
+        <div id="wrapNovoEventoModal" style="display: none; margin-top: 8px;">
+          <input type="text" id="modalNovoEventoNome" placeholder="Nome do novo evento (ex: Conferência de Mulheres)" style="width: 100%; padding: 10px; border: 1.5px solid #2196F3; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="button" onclick="fecharModalEventoVendas()" style="flex: 1; padding: 12px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: #333;">Fechar</button>
+        <button type="submit" style="flex: 1; padding: 12px; background: #1976d2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Salvar Conexão</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal de Fechamento de Caixa -->
 <div id="modalFechamentoCaixa" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
-  <div style="background: white; border-radius: 12px; padding: 24px; width: min(420px, 90vw); max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+  <div style="background: white; border-radius: 12px; padding: 24px; width: min(560px, 94vw); max-height: 88vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
     <h2 style="margin: 0 0 16px 0; color: #333;">Finalizar Caixa</h2>
-    <form id="formFechamentoCaixa" onsubmit="processarFechamentoCaixa(event)" style="display: flex; flex-direction: column; gap: 16px;">
+    <form id="formFechamentoCaixa" onsubmit="processarFechamentoCaixa(event)" style="display: flex; flex-direction: column; gap: 14px;">
       <div id="sugestaoValorFechamento"></div>
+
+      <!-- Seção: Perda de Produtos no Fechamento -->
+      <div style="background: #fff5f5; border: 1px solid #feb2b2; border-left: 4px solid #e53e3e; border-radius: 8px; padding: 12px;">
+        <div style="font-weight: 700; color: #9b2c2c; font-size: 13px; margin-bottom: 8px;">🗑️ Registrar Perda de Produtos (opcional)</div>
+        <div style="display: grid; grid-template-columns: 1.6fr 0.7fr 1.2fr auto; gap: 6px; align-items: center;">
+          <select id="fechPerdaProduto" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 100%;">
+            <option value="">-- Produto --</option>
+          </select>
+          <input type="number" id="fechPerdaQtd" min="0.01" step="any" placeholder="Qtd" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 100%;">
+          <input type="text" id="fechPerdaMotivo" placeholder="Motivo (ex: sobra)" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 100%;">
+          <button type="button" onclick="adicionarPerdaFechamento()" style="padding: 8px 11px; background: #e53e3e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; white-space: nowrap;">+ Incluir</button>
+        </div>
+        <div id="listaPerdasFechamento" style="margin-top: 8px; font-size: 12px; color: #742a2a;"></div>
+      </div>
+
+      <!-- Seção: Queima de Estoque no Fechamento -->
+      <div style="background: #fffaf0; border: 1px solid #fbd38d; border-left: 4px solid #dd6b20; border-radius: 8px; padding: 12px;">
+        <div style="font-weight: 700; color: #9c4221; font-size: 13px; margin-bottom: 8px;">🔥 Registrar Queima de Estoque / Saldão (opcional)</div>
+        <div style="display: grid; grid-template-columns: 1.5fr 0.6fr 0.8fr 1fr auto; gap: 6px; align-items: center;">
+          <select id="fechQueimaProduto" onchange="sugerirPrecoQueimaFechamento()" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 100%;">
+            <option value="">-- Produto --</option>
+          </select>
+          <input type="number" id="fechQueimaQtd" min="0.01" step="any" placeholder="Qtd" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 100%;">
+          <input type="number" id="fechQueimaPreco" min="0.01" step="0.01" placeholder="R$ Un." title="Preço unitário promocional" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 100%;">
+          <input type="text" id="fechQueimaObs" placeholder="Obs." style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 100%;">
+          <button type="button" onclick="adicionarQueimaFechamento()" style="padding: 8px 11px; background: #dd6b20; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; white-space: nowrap;">+ Incluir</button>
+        </div>
+        <div id="sugestaoQueimaFechamento" style="font-size: 11px; color: #9c4221; margin-top: 4px;"></div>
+        <div id="listaQueimasFechamento" style="margin-top: 8px; font-size: 12px; color: #7b341e;"></div>
+      </div>
+
       <div>
-        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Valor de Fechamento (R$) *</label>
+        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Valor de Fechamento em Caixa (R$) *</label>
         <input type="text" id="valorFechamentoCaixa" placeholder="0,00" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;" required>
-        <div style="font-size: 12px; color: #888; margin-top: 4px;">Digite ou corrija o valor acima</div>
+        <div style="font-size: 12px; color: #888; margin-top: 4px;">Digite ou corrija o valor total contado no caixa</div>
       </div>
       <div>
         <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #555;">Observações (opcional)</label>
-        <textarea id="obsFechamentoCaixa" placeholder="Anotações adicionais..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 80px;"></textarea>
+        <textarea id="obsFechamentoCaixa" placeholder="Anotações adicionais..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 64px;"></textarea>
       </div>
-      <div style="display: flex; gap: 10px; margin-top: 10px;">
+      <div style="display: flex; gap: 10px; margin-top: 6px;">
         <button type="button" onclick="cancelarFechamentoCaixa()" style="flex: 1; padding: 12px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: #333;">Cancelar</button>
         <button type="submit" style="flex: 1; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Próximo</button>
       </div>
@@ -1469,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Modal de Relatório de Fechamento -->
 <div id="modalRelatorioCaixa" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10001; align-items: center; justify-content: center;">
-  <div style="background: white; border-radius: 12px; padding: 24px; width: min(500px, 90vw); max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+  <div style="background: white; border-radius: 12px; padding: 24px; width: min(520px, 94vw); max-height: 88vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
     <h2 style="margin: 0 0 20px 0; color: #333; text-align: center;">Relatório de Fechamento</h2>
     
     <div style="background: #f9f9f9; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e0e0e0;">
@@ -1479,11 +1561,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size: 18px; font-weight: 600; color: #4CAF50;" id="relValorAbertura">R$ 0,00</div>
         </div>
         <div>
-          <div style="color: #666; margin-bottom: 4px;">Total de Vendas</div>
+          <div style="color: #666; margin-bottom: 4px;">Total Vendas (+ Queima)</div>
           <div style="font-size: 18px; font-weight: 600; color: #2196F3;" id="relTotalVendas">R$ 0,00</div>
         </div>
       </div>
     </div>
+
+    <div id="relResumoPerdasQueimas" style="display: none; background: #fff8f0; padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #fbd38d; font-size: 13px; color: #333;"></div>
 
     <div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #4CAF50;">
       <div style="color: #666; font-size: 14px; margin-bottom: 6px;">Valor Esperado (Abertura + Vendas)</div>
@@ -1565,12 +1649,16 @@ async function salvarPerda() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       produto_id, quantidade, motivo,
-      usuario_id: JSON.parse(localStorage.getItem('usuario') || '{}').id
+      usuario_id: JSON.parse(localStorage.getItem('usuario') || '{}').id,
+      sessao_caixa_id: parseInt(localStorage.getItem('sessaoCaixaId') || '0', 10) || null
     })
   });
   const data = await res.json();
   if (data.sucesso) {
-    alert(`Registro de perda de ${quantidade} unidade(s) concluído.`);
+    const prej = data.dados && Number(data.dados.prejuizo) > 0
+      ? ` Prejuízo contabilizado: R$ ${Number(data.dados.prejuizo).toFixed(2).replace('.', ',')}.`
+      : '';
+    alert(`Registro de perda de ${quantidade} unidade(s) concluído.${prej}`);
     fecharModalPerda();
     carregarProdutos(); // atualiza o estoque na tela
   } else {
@@ -1578,6 +1666,6 @@ async function salvarPerda() {
   }
 }
 </script>
-<script src="js/vendas-config.js?v=20260401"></script>
+<script src="js/vendas-config.js?v=20261123_pq2"></script>
 </body>
 </html>

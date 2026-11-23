@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Perdas, Queimas &amp; Lucros - Cantina IBFC</title>
+    <link rel="stylesheet" href="css/controle-estoque.css">
+    <link rel="stylesheet" href="css/relatorios-a4.css">
+    <link rel="stylesheet" href="css/responsivo-mobile.css">
+    <script src="js/relatorios-a4.js" defer></script>
+</head>
+<body>
+
+<nav class="topbar">
+    <div class="topbar-inner">
+        <div class="unidade-badge">
+            <img src="LOGO_F.png" alt="Cantina IBFC" class="brand-logo">
+            <span class="dot"></span>
+            <strong>Relatório Gerencial — Perdas, Queimas &amp; Lucros</strong>
+        </div>
+        <div class="operador-info">
+            <a href="controle-estoque.html" class="btn-nav">&larr; Controle de Estoque</a>
+            <a href="relatorios.html" class="btn-nav">📊 Relatórios Vendas</a>
+            <a href="financeiro.html" class="btn-nav">💰 Financeiro</a>
+            <a href="admin.html" class="btn-nav">⚙️ Admin</a>
+            <span>Admin: <strong id="topbar_gerente">...</strong></span>
+            <button type="button" id="btnSair" class="btn-sair">Sair</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <header class="header-flex">
+        <div>
+            <h1>Ranking de Perdas, Queimas, Lucros &amp; Prejuízos</h1>
+            <p>Visão gerencial consolidada automaticamente a partir das vendas do PDV e das baixas de estoque</p>
+        </div>
+        <div class="acoes-header no-print">
+            <a href="#" id="btnExportarCsv" class="btn btn-excel">📥 Exportar Excel (CSV)</a>
+            <button type="button" onclick="window.print()" class="btn btn-secondary">🖨️ Imprimir / PDF</button>
+        </div>
+    </header>
+
+    <div id="alerta_rel" class="alerta hidden"></div>
+
+    <section class="card no-print">
+        <form id="formFiltros" class="filtro-bar">
+            <div class="form-group">
+                <label for="data_inicio">Data Inicial:</label>
+                <input type="date" id="data_inicio" required>
+            </div>
+            <div class="form-group">
+                <label for="data_fim">Data Final:</label>
+                <input type="date" id="data_fim" required>
+            </div>
+            <div class="form-group">
+                <label for="sessao_id">Sessão / Login:</label>
+                <select id="sessao_id">
+                    <option value="ATUAL">Este Login (Sessão Atual)</option>
+                    <option value="TODAS">Todas as Sessões (Período)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="usuario_id">Operador:</label>
+                <select id="usuario_id">
+                    <option value="TODOS">Todos os Operadores</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="categoria">Categoria:</label>
+                <select id="categoria">
+                    <option value="TODAS">Todas as Categorias</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Filtrar Período</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="kpis">
+        <div class="kpi-card">
+            <span>Receita Bruta (Vendas + Queima)</span>
+            <strong id="kpi_fat">R$ 0,00</strong>
+            <small id="kpi_fat_sub">Normal + Queima</small>
+        </div>
+        <div class="kpi-card positivo">
+            <span>Lucro de Vendas + Queima</span>
+            <strong id="kpi_lucro_vendas">R$ 0,00</strong>
+            <small id="kpi_queima_sub">Recuperado em queima: R$ 0,00</small>
+        </div>
+        <div class="kpi-card alerta-card">
+            <span>Quebra de Transformação</span>
+            <strong id="kpi_quebra">R$ 0,00</strong>
+            <small>Diferença em reaproveitamentos</small>
+        </div>
+        <div class="kpi-card negativo">
+            <span>Perda Não Reaproveitável</span>
+            <strong id="kpi_perda">R$ 0,00</strong>
+            <small id="kpi_indice_sub">Índice de perda: 0,0%</small>
+        </div>
+        <div class="kpi-card destaque">
+            <span>Resultado Líquido Final</span>
+            <strong id="kpi_resultado_final">R$ 0,00</strong>
+            <small>Lucros − Perdas − Quebras</small>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>1. Desempenho e Lucro/Prejuízo por Categoria</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pos.</th>
+                        <th>Categoria</th>
+                        <th>Venda Normal</th>
+                        <th>Queima (Saldão)</th>
+                        <th>Quebra Transf.</th>
+                        <th>Perda Pura (Lixo)</th>
+                        <th>Índice Perda (%)*</th>
+                        <th>Lucro Vendas</th>
+                        <th>Resultado Final</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_categorias">
+                    <tr><td colspan="9" style="text-align:center;">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <small style="color:#64748b; display:block; margin-top:10px;">
+            *Índice de Perda = Perda Não Reaproveitável &divide; (Receita Bruta Total + Perda Não Reaproveitável) &times; 100 (sempre entre 0% e 100%). Acima de 5% indica alerta crítico de desperdício.
+        </small>
+    </section>
+
+    <div class="grid-2">
+        <section class="card">
+            <h2>2. Auditoria por Operador</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operador</th>
+                            <th>Vendas</th>
+                            <th>Perda Pura</th>
+                            <th>Queima</th>
+                            <th>Reaprov.</th>
+                            <th>Resultado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_operadores">
+                        <tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>3. Produtos Críticos (Maiores Perdas / Queimas)</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Perda Pura</th>
+                            <th>Qtd Queima</th>
+                            <th>Qtd Reaprov.</th>
+                            <th>Lucro Vendas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_viloes">
+                        <tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>4. Evolução Diária (Lucros vs Prejuízos)</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Receita Bruta</th>
+                        <th>Lucro (Vendas + Queima)</th>
+                        <th>Perdas + Quebras</th>
+                        <th>Resultado Líquido do Dia</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_diario">
+                    <tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script src="js/relatorios-perdas.js"></script>
+</body>
+</html>

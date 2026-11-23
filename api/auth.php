@@ -62,6 +62,10 @@ function ensure_caixa_schema($conn) {
         login_usuario VARCHAR(100) NOT NULL,
         abertura_caixa DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         fechamento_caixa DATETIME NULL,
+        valor_abertura DECIMAL(10, 2) DEFAULT 0,
+        valor_fechamento DECIMAL(10, 2) DEFAULT 0,
+        total_vendas DECIMAL(10, 2) DEFAULT 0,
+        observacoes TEXT NULL,
         status ENUM('aberto','fechado') NOT NULL DEFAULT 'aberto',
         ip_origem VARCHAR(45) NULL,
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -69,6 +73,19 @@ function ensure_caixa_schema($conn) {
         INDEX idx_usuario_status (id_usuario, status),
         INDEX idx_abertura (abertura_caixa)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $extraCols = [
+        'valor_abertura' => "ALTER TABLE caixa_sessoes ADD COLUMN valor_abertura DECIMAL(10, 2) DEFAULT 0 AFTER fechamento_caixa",
+        'valor_fechamento' => "ALTER TABLE caixa_sessoes ADD COLUMN valor_fechamento DECIMAL(10, 2) DEFAULT 0 AFTER valor_abertura",
+        'total_vendas' => "ALTER TABLE caixa_sessoes ADD COLUMN total_vendas DECIMAL(10, 2) DEFAULT 0 AFTER valor_fechamento",
+        'observacoes' => "ALTER TABLE caixa_sessoes ADD COLUMN observacoes TEXT NULL AFTER total_vendas"
+    ];
+    foreach ($extraCols as $col => $alterSql) {
+        $check = $conn->query("SHOW COLUMNS FROM caixa_sessoes LIKE '{$col}'");
+        if (!$check || $check->num_rows === 0) {
+            $conn->query($alterSql);
+        }
+    }
 }
 
 ensure_caixa_schema($conn);
@@ -122,76 +139,57 @@ if ($method === 'POST' && $action === 'login') {
         if (verify_password($password, $row['senha'])) {
             $papelNormalizado = normalize_usuario_role($row['papel'] ?? 'vendedor');
             $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-            
-            // Verificar se já tem sessão aberta de caixa HOJE
-            $hoje = date('Y-m-d');
-            $stmtVerificar = $conn->prepare(
-                'SELECT id_sessao, status FROM caixa_sessoes WHERE id_usuario = ? AND DATE(abertura_caixa) = ? ORDER BY abertura_caixa DESC LIMIT 1'
+
+            // Encerrar qualquer sessão anterior ainda aberta deste usuário, preservando o total de vendas já feito
+            $stmtAbertas = $conn->prepare(
+                "SELECT id_sessao FROM caixa_sessoes WHERE id_usuario = ? AND status = 'aberto'"
             );
-            
-            if ($stmtVerificar) {
-                $stmtVerificar->bind_param('is', $row['id_usuario'], $hoje);
-                $stmtVerificar->execute();
-                $resultVerificar = $stmtVerificar->get_result();
-                
-                if ($resultVerificar->num_rows > 0) {
-                    $sessaoExistente = $resultVerificar->fetch_assoc();
-                    
-                    // Se última sessão do dia está ABERTA, reutiliza
-                    if ($sessaoExistente['status'] === 'aberto') {
-                        $sessaoCaixaId = (int)$sessaoExistente['id_sessao'];
-                    } else {
-                        // Se está FECHADA, cria nova sessão (reabertura do caixa)
-                        $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
-                        if (!$stmtSessao) {
-                            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
-                            exit;
-                        }
-                        $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
-                        if (!$stmtSessao->execute()) {
-                            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
-                            exit;
-                        }
-                        $sessaoCaixaId = (int)$stmtSessao->insert_id;
-                        $stmtSessao->close();
+            if ($stmtAbertas) {
+                $stmtAbertas->bind_param('i', $row['id_usuario']);
+                $stmtAbertas->execute();
+                $resAbertas = $stmtAbertas->get_result();
+                $stmtFecharAnt = $conn->prepare(
+                    "UPDATE caixa_sessoes
+                     SET status = 'fechado',
+                         fechamento_caixa = NOW(),
+                         total_vendas = COALESCE((SELECT SUM(COALESCE(valor_total, 0)) FROM vendas WHERE sessao_caixa_id = ?), total_vendas, 0)
+                     WHERE id_sessao = ?"
+                );
+                while ($ab = $resAbertas->fetch_assoc()) {
+                    $idAnt = (int)$ab['id_sessao'];
+                    if ($stmtFecharAnt) {
+                        $stmtFecharAnt->bind_param('ii', $idAnt, $idAnt);
+                        $stmtFecharAnt->execute();
                     }
-                } else {
-                    // Cria primeira sessão de caixa do dia
-                    $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
-                    if (!$stmtSessao) {
-                        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
-                        exit;
-                    }
-                    $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
-                    if (!$stmtSessao->execute()) {
-                        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
-                        exit;
-                    }
-                    $sessaoCaixaId = (int)$stmtSessao->insert_id;
-                    $stmtSessao->close();
                 }
-                
-                $stmtVerificar->close();
-            } else {
-                // Erro ao preparar verificação, mas continua criando nova sessão
-                $stmtSessao = $conn->prepare('INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, status, ip_origem) VALUES (?, ?, NOW(), \'aberto\', ?)');
-                if (!$stmtSessao) {
-                    echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
-                    exit;
+                if ($stmtFecharAnt) {
+                    $stmtFecharAnt->close();
                 }
-                $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
-                if (!$stmtSessao->execute()) {
-                    echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
-                    exit;
-                }
-                $sessaoCaixaId = (int)$stmtSessao->insert_id;
-                $stmtSessao->close();
+                $stmtAbertas->close();
             }
+
+            // Sempre iniciar uma nova sessão de caixa ZERADA para este login (sem herdar quebra/financeiro anterior)
+            $stmtSessao = $conn->prepare(
+                "INSERT INTO caixa_sessoes (id_usuario, login_usuario, abertura_caixa, valor_abertura, valor_fechamento, total_vendas, status, ip_origem)
+                 VALUES (?, ?, NOW(), 0.00, 0.00, 0.00, 'aberto', ?)"
+            );
+            if (!$stmtSessao) {
+                echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $conn->error]);
+                exit;
+            }
+            $stmtSessao->bind_param('iss', $row['id_usuario'], $row['login'], $ip);
+            if (!$stmtSessao->execute()) {
+                echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao abrir caixa: ' . $stmtSessao->error]);
+                exit;
+            }
+            $sessaoCaixaId = (int)$stmtSessao->insert_id;
+            $stmtSessao->close();
 
             $_SESSION['usuario_id'] = $row['id_usuario'];
             $_SESSION['username'] = $row['login'];
             $_SESSION['tipo'] = $papelNormalizado;
             $_SESSION['caixa_sessao_id'] = $sessaoCaixaId;
+            $_SESSION['login_iniciado_em'] = date('Y-m-d H:i:s');
 
             echo json_encode([
                 'sucesso' => true,
@@ -608,11 +606,7 @@ if ($method === 'POST' && $action === 'deletar_usuario') {
                 exit;
             }
 
-            if ($stmtErrno === 1451) {
-                echo json_encode(['sucesso' => false, 'mensagem' => 'Não é possível deletar este usuário pois ele possui vendas ou registros associados no sistema']);
-            } else {
-                echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao deletar: ' . $stmt->error]);
-            }
+            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao deletar: ' . $stmt->error]);
             exit;
         }
 
@@ -628,12 +622,8 @@ if ($method === 'POST' && $action === 'deletar_usuario') {
             echo json_encode($fallback);
             exit;
         }
-        if ($mysqlErrno === 1451) {
-            echo json_encode(['sucesso' => false, 'mensagem' => 'Não é possível deletar este usuário pois ele possui vendas ou registros associados no sistema']);
-        } else {
-            $stmtError = ($stmt instanceof mysqli_stmt) ? $stmt->error : $conn->error;
-            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao deletar: ' . $stmtError]);
-        }
+        $stmtError = ($stmt instanceof mysqli_stmt) ? $stmt->error : $conn->error;
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao deletar: ' . $stmtError]);
     } finally {
         if ($stmt instanceof mysqli_stmt) {
             $stmt->close();
@@ -651,60 +641,37 @@ if ($method === 'POST' && $action === 'verificar_senha_admin') {
         exit;
     }
     
-    // Buscar usuário admin
+    // Buscar usuários admin ativos
     $selectMap = get_usuario_select_map($conn);
     $loginCol = $selectMap['login'];
     $senhaCol = $selectMap['senha'];
     $papelCol = $selectMap['papel'];
+    $statusFilter = has_usuario_column($conn, 'status')
+        ? " AND LOWER(COALESCE(status, 'ativo')) <> 'inativo'"
+        : '';
     
-    // Buscar usuário com perfil administrativo (inclui valores legados)
+    // Buscar todos os usuários com perfil administrativo (inclui valores legados e login 'admin')
     $sql = sprintf(
-        'SELECT %s FROM usuarios WHERE LOWER(%s) IN ("admin", "administrador", "gestor") LIMIT 1',
+        "SELECT %s FROM usuarios WHERE (LOWER(%s) IN ('admin', 'administrador', 'gestor') OR LOWER(%s) = 'admin') AND LOWER(%s) NOT LIKE '__inativo__%%'%s",
         $senhaCol,
-        $papelCol
+        $papelCol,
+        $loginCol,
+        $loginCol,
+        $statusFilter
     );
     
     $result = $conn->query($sql);
-    if (!$result || $result->num_rows === 0) {
-        // Tentar buscar por username admin
-        $sql2 = sprintf(
-            'SELECT %s FROM usuarios WHERE %s = "admin" LIMIT 1',
-            $senhaCol,
-            $loginCol
-        );
-        $result = $conn->query($sql2);
-    }
-    
     if (!$result || $result->num_rows === 0) {
         echo json_encode(['sucesso' => false, 'mensagem' => 'Admin não encontrado']);
         exit;
     }
     
-    $user = $result->fetch_assoc();
-    $senhaHash = $user[$senhaCol] ?? '';
-    
-    // Verificar com password_verify (bcrypt)
-    if (password_verify($senha, $senhaHash)) {
-        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
-        exit;
-    }
-    
-    // Verificar SHA256
-    if (hash('sha256', $senha) === $senhaHash) {
-        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
-        exit;
-    }
-    
-    // Verificar MD5
-    if (md5($senha) === $senhaHash) {
-        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
-        exit;
-    }
-    
-    // Verificar plaintext
-    if ($senha === $senhaHash) {
-        echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
-        exit;
+    while ($user = $result->fetch_assoc()) {
+        $senhaHash = $user[$senhaCol] ?? '';
+        if (verify_password($senha, $senhaHash)) {
+            echo json_encode(['sucesso' => true, 'mensagem' => 'Autenticado']);
+            exit;
+        }
     }
     
     echo json_encode(['sucesso' => false, 'mensagem' => 'Senha incorreta']);

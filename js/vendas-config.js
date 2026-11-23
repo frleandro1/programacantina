@@ -4,14 +4,14 @@ async function carregarConfiguracoesPedidos() {
   try {
     console.log('[Vendas Config] Iniciando carregamento de configurações...');
     
-    const response = await fetch('/Cantina/api/configuracoes.php?action=obter', { cache: 'no-store' });
+    const response = await fetch('api/configuracoes.php?action=obter', { cache: 'no-store' });
     const data = await response.json();
     
     console.log('[Vendas Config] Resposta recebida:', data);
     
     if (data.sucesso && data.dados) {
       console.log('[Vendas Config] Aplicando configurações...');
-      const nomeCantina = data.dados.nome_cantina || 'Cantina IBFC';
+      const nomeCantina = data.dados.nome_cantina || (window.CantinaSistema ? window.CantinaSistema.nomeSistema : 'Cantina IBFC');
       const fallbackLogo = 'LOGO_F.png';
       const logoUrl = data.dados.logo_url ? `${data.dados.logo_url}?t=${Date.now()}` : fallbackLogo;
       

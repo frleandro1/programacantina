@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
@@ -6,16 +6,25 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Lefro Cantina - Login</title>
+    <title>Cantina IBFC - Login</title>
     <link rel="stylesheet" href="css/login-backgrounds.css">
+    <script>
+        document.documentElement.style.setProperty(
+            '--login-background-image',
+            "url('uploads/backgrounds/cantina-background.jpg?v=" + Date.now() + "')"
+        );
+    </script>
     <style>
+        :root {
+            --login-background-image: url('uploads/backgrounds/cantina-background.jpg');
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: url('uploads/backgrounds/cantina-background.jpg') center/cover no-repeat fixed, 
+            background: var(--login-background-image) center/cover no-repeat fixed,
                         linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             background-blend-mode: normal;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -36,10 +45,10 @@
         }
         
         body.admin-mode {
-            background: url('uploads/backgrounds/cantina-background.jpg') center/cover no-repeat fixed;
+            background: var(--login-background-image) center/cover no-repeat fixed;
         }
         body.vendedor-mode {
-            background: url('uploads/backgrounds/cantina-background.jpg') center/cover no-repeat fixed;
+            background: var(--login-background-image) center/cover no-repeat fixed;
         }
         .container {
             width: 100%;
@@ -99,6 +108,15 @@
             background: #f0f4ff;
         }
         .menu-btn.vendedor:hover {
+            border-color: #ff7a45;
+            background: #fff5f0;
+        }
+        .menu-btn.events {
+            grid-column: 1 / -1;
+            justify-self: center;
+            width: calc(50% - 10px);
+        }
+        .menu-btn.events:hover {
             border-color: #ff7a45;
             background: #fff5f0;
         }
@@ -266,6 +284,9 @@
             .menu-buttons {
                 grid-template-columns: 1fr;
             }
+            .menu-btn.events {
+                width: 100%;
+            }
             .card {
                 padding: 20px;
             }
@@ -301,6 +322,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="css/responsivo-mobile.css">
 </head>
 <body>
 <script>
@@ -322,7 +344,7 @@
             <div id="menuInicial">
                 <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
                   <img src="LOGO_F.png" alt="Logo Cantina" style="height: 50px; width: auto; object-fit: contain;">
-                  <span>Lefro Cantina</span>
+                  <span>Cantina IBFC</span>
                 </h1>
                 <div class="subtitle">Escolha seu tipo de acesso</div>
 
@@ -334,13 +356,18 @@
                     </button>
                     <button class="menu-btn vendedor" onclick="selecionarTipo('vendedor')">
                         <div class="menu-btn-icon">🛒</div>
-                        <div class="menu-btn-title">Vendedor</div>
+                        <div class="menu-btn-title">Ministério</div>
                         <div class="menu-btn-desc">Acesso ao módulo de<br>vendas</div>
+                    </button>
+                    <button class="menu-btn events" onclick="selecionarEventos()">
+                        <div class="menu-btn-icon">📅</div>
+                        <div class="menu-btn-title">Eventos</div>
+                        <div class="menu-btn-desc">Editar eventos e apurações</div>
                     </button>
                 </div>
 
                 <div class="info-box" style="margin-top: 40px;">
-                    <strong>Sistema de Gerenciamento de Cantina</strong>
+                    <strong>Sistema de Gerenciamento da Cantina IBFC</strong>
                     Selecione seu perfil para continuar
                 </div>
             </div>
@@ -376,8 +403,10 @@
         </div>
     </div>
 
+    <script src="js/sistema-core.js"></script>
     <script>
         let tipoAtual = null;
+        let abrirEventosAposLogin = false;
         const LEMBRAR_LOGIN_KEY = 'cantinaLembrarLogin';
         const LEMBRAR_LOGIN_DIAS = 30;
 
@@ -402,9 +431,7 @@
             }
         }
             function normalizarTipoUsuario(tipo) {
-                const t = String(tipo || '').toLowerCase();
-                if (t === 'admin' || t === 'administrador' || t === 'gestor') return 'admin';
-                return 'vendedor';
+                return window.CantinaSistema ? window.CantinaSistema.normalizarTipoUsuario(tipo) : 'vendedor';
             }
 
         function salvarLembrarLogin(payload) {
@@ -445,34 +472,38 @@
 
         function selecionarTipo(tipo) {
             tipoAtual = tipo;
+            if (tipo !== 'admin') abrirEventosAposLogin = false;
             document.body.className = tipo + '-mode';
             document.getElementById('menuInicial').classList.add('hidden');
             document.getElementById('formContainer').classList.add('show');
 
-            const titulo = tipo === 'admin' ? '👨‍💼 Administrador' : '🛒 Vendedor';
+            const titulo = tipo === 'admin' ? '👨‍💼 ' + window.CantinaSistema.rotuloTipoUsuario('admin') : '🛒 ' + window.CantinaSistema.rotuloTipoUsuario('vendedor');
             document.getElementById('formTitle').textContent = titulo;
 
             const btnLogin = document.getElementById('btnLogin');
             btnLogin.className = 'btn btn-' + tipo;
 
-            // Gerar info box baseado no tipo
             const infoBox = document.getElementById('infoBox');
             if (tipo === 'admin') {
-                infoBox.innerHTML = '<strong>Credencial de Teste (Admin):</strong>admin / admin123';
+                infoBox.innerHTML = '<strong>Perfil:</strong> Acesso administrativo';
                 document.getElementById('username').focus();
-                document.getElementById('username').value = 'admin';
+                document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
                 document.getElementById('password').focus();
             } else {
-                infoBox.innerHTML = '<strong>Credenciais de Teste (Vendedor):</strong>Lefro1 / 123456<br>Lefro2 / 123456';
+                infoBox.innerHTML = '<strong>Perfil:</strong> Acesso ao módulo de vendas';
                 document.getElementById('username').focus();
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
             }
 
             aplicarCredenciaisSalvasNoFormulario();
-
             testarConexao();
+        }
+
+        function selecionarEventos() {
+            abrirEventosAposLogin = true;
+            selecionarTipo('admin');
         }
 
         document.getElementById('rememberPassword').addEventListener('change', (e) => {
@@ -483,6 +514,7 @@
 
         function voltarMenu() {
             tipoAtual = null;
+            abrirEventosAposLogin = false;
             document.body.className = '';
             document.getElementById('menuInicial').classList.remove('hidden');
             document.getElementById('formContainer').classList.remove('show');
@@ -496,8 +528,8 @@
             const basePath = window.location.pathname.replace(/\/[^/]*$/, '');
             return [
                 basePath + '/api/' + rota,
-                '/Cantina/api/' + rota,
-                '/api/' + rota
+                'api/' + rota,
+                '/Cantina1/api/' + rota
             ];
         }
 
@@ -536,7 +568,7 @@
                     statusTest.innerHTML = '⚠️ Servidor indisponível (HTTP ' + resposta.status + ')';
                     statusTest.style.color = '#ff7a45';
                 } else {
-                    statusTest.innerHTML = '⚠️ API não encontrada. Acesse via http://localhost/Cantina/login-menu.html';
+                    statusTest.innerHTML = '⚠️ API não encontrada. Acesse via http://localhost/Cantina1/login-menu.html';
                     statusTest.style.color = '#ff7a45';
                 }
             } catch (err) {
@@ -656,20 +688,26 @@
                     
                     const tipoLogado = normalizarTipoUsuario(data.usuario?.tipo || tipoAtual);
                     localStorage.setItem('userType', tipoLogado);
+                    const destinoAdmin = abrirEventosAposLogin ? 'financeiro.html' : 'admin.html';
                     
+                    // Zerar dados residuais de caixa/evento do login anterior para evitar erro na contagem
+                    localStorage.removeItem('valorAberturaAtual');
+                    localStorage.removeItem('eventoIdAtual');
+                    localStorage.removeItem('eventoNomeAtual');
+                    localStorage.removeItem('aberturaCaixaEm');
+
                     if (data.sessao_caixa_id) {
                         localStorage.setItem('sessaoCaixaId', String(data.sessao_caixa_id));
                         localStorage.setItem('aberturaCaixaEm', new Date().toISOString());
+                        localStorage.setItem('valorAberturaAtual', '0');
                     } else {
                         // Se não veio sessaoCaixaId da API, remove do localStorage
                         localStorage.removeItem('sessaoCaixaId');
-                        localStorage.removeItem('aberturaCaixaEm');
-                        localStorage.removeItem('valorAberturaAtual');
                     }
 
                     setTimeout(() => {
                             if (tipoLogado === 'admin') {
-                            window.location.href = 'admin.html';
+                            window.location.href = destinoAdmin;
                         } else {
                             window.location.href = 'vendas.html';
                         }

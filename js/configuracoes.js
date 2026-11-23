@@ -19,7 +19,7 @@ async function carregarConfiguracoes() {
       document.getElementById('corFundoCardText').value = data.dados.cor_fundo_card || '#34495e';
       
       // Nome da cantina
-      document.getElementById('nomeCantina').value = data.dados.nome_cantina || 'Lefro Cantina';
+      document.getElementById('nomeCantina').value = data.dados.nome_cantina || 'Cantina IBFC';
       
       // Impressora Térmica
       const nome = data.dados.impressora_nome || '';
